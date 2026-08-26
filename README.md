@@ -1,76 +1,164 @@
 # War Room Dashboard
 
-一个本地优先的个人作战室看板，用 SQLite 做真相源，用零依赖 Python HTTP 服务提供项目板、节点看板、时间线、任务甘特、成果库、知识对战和复盘视图。
+> Local-first command center for AI operators, solo builders, and people running many projects at once.
+
+[![Smoke test](https://img.shields.io/badge/smoke%20test-passing-brightgreen.svg)](scripts/smoke_test.py)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![SQLite](https://img.shields.io/badge/Storage-SQLite-lightgrey.svg)](https://www.sqlite.org/)
+[![Local first](https://img.shields.io/badge/Local--first-yes-black.svg)](#privacy-boundary)
+
+War Room Dashboard is a zero-dependency personal operations dashboard. It turns scattered project notes into a structured cockpit with projects, timelines, tasks, artifacts, review cards, questions, and daily retrospectives.
+
+It is designed for people who use AI agents seriously: every project needs a next action, a blocker, an owner, a timeline, and reusable assets that compound.
+
+中文一句话：这是一个本地优先的个人作战室，用 SQLite 做真相源，把项目、任务、成果、知识对战和复盘收进一个可运行的中枢看板。
 
 ![Dashboard preview](docs/dashboard-preview.png)
 
-## 适合什么场景
+## Why This Exists
 
-- 管理多个长期项目，而不是只维护一堆零散 Markdown。
-- 把每天真实推进的动作记成时间线。
-- 跟踪项目状态、球在谁手、下一步、卡点和成果。
-- 用知识对战卡做长期复习，并记录疑问。
-- 作为一人公司 / AI Agent 工作流 / 个人中枢的本地驾驶舱。
+Most personal project systems slowly become a pile of Markdown files, chat transcripts, and unfinished dashboards. This project takes a stricter view:
 
-## 功能亮点
+- Projects should have current state, next action, blocker, and owner.
+- Progress should become timeline evidence.
+- Important output should become reusable artifacts.
+- Learning should become review cards and questions.
+- The database should remain local and private by default.
 
-- 项目板：项目状态、负责人、下一步、卡点、路径和提交进展。
-- 作战室指挥条：球在我、卡点、到期任务、复习卡、开放疑问、最近提交。
-- 节点看板：复杂项目 DAG、服务入口、节点原语和当前项目快照。
-- 今日时间线：按项目和时间查看当天推进记录。
-- 任务甘特：用日期、状态、目标和完成度管理任务。
-- 成果库：沉淀 SOP、想法、文档、链接、数据等资产。
-- 知识对战：SM-2 复习、MAIC 风格多角色反馈、疑问记录。
-- 每日复盘：把复盘条目变成可勾选、可补充想法的记录。
+## Features
 
-## 快速启动
+- Project board: status, owner, next step, blocker, path, and recent movement.
+- Command strip: "mine", blockers, due tasks, review cards, open questions, recent commits.
+- Timeline: project-lane view of real daily progress.
+- Gantt tasks: dates, owners, goals, progress, and overdue cues.
+- Artifact library: SOPs, ideas, docs, links, datasets, and notes.
+- Knowledge battle: SM-2 style review cards with multi-role feedback.
+- Question loop: ask follow-up questions on cards and close stale threads automatically.
+- Daily review: lightweight review entries with checks and notes.
+- Local-first storage: SQLite database created on first start.
+- Zero runtime dependencies: Python standard library only.
+
+## Quick Start
 
 ```bash
-cd app
-python3 server.py
+git clone https://github.com/pagoda111king/war-room-dashboard.git
+cd war-room-dashboard
+./start.sh
 ```
 
-打开：
+Open:
 
 ```text
 http://127.0.0.1:8766
 ```
 
-也可以用根目录脚本：
+Use another port:
 
 ```bash
-./start.sh
+PORT=8876 ./start.sh
 ```
 
-## 数据说明
+Health check:
 
-首次启动会在 `app/项目台.db` 自动创建 SQLite 数据库和 demo seed。这个数据库是你的本地真相源，不建议上传到 GitHub。
+```bash
+curl http://127.0.0.1:8766/api/health
+```
 
-本仓库的 `.gitignore` 默认排除：
+## Requirements
+
+- Python 3.10+
+- A modern browser
+- No Node.js, package manager, or external database required
+
+## Privacy Boundary
+
+The real source of truth is `app/项目台.db`, a local SQLite database created on first start.
+
+The repository intentionally ignores:
 
 - `*.db`
 - `*.sqlite`
-- `__pycache__/`
 - `.env`
-- 日志文件
+- logs
+- caches
+- local build output
 
-## 推荐工作流
+Do not commit a real personal database to a public fork. Use the generated demo seed for public demos.
 
-1. 新建项目或把项目迁入项目板。
-2. 每次推进后更新“刚刚完成的”和“当前进行中/下一步”。
-3. 点击“提交进展”，让进展进入时间线。
-4. 重要产物勾选“同时沉淀成果”。
-5. 卡住时写清卡点，用下一轮计划拆 checkpoint 和回退条件。
-6. 每天用“知识对战”和“每日复盘”做沉淀。
+## Configuration
 
-## 私有化建议
+Environment variables:
 
-这个项目默认是本地单机工具。如果要公网部署，请先补：
+| Variable | Default | Description |
+| --- | --- | --- |
+| `PORT` | `8766` | HTTP server port |
+| `OPENMAIC_URL` | `http://127.0.0.1:8770` | Optional local LLM hook for card questions |
 
-- 登录认证
-- 数据备份
-- 写接口权限控制
-- HTTPS
-- 数据脱敏
+## Project Structure
 
-不要把真实私人数据库直接放进公开仓库。
+```text
+war-room-dashboard/
+  app/
+    index.html        # Single-page dashboard UI
+    server.py         # Zero-dependency Python HTTP + SQLite server
+  docs/
+    API.md
+    ARCHITECTURE.md
+    CI.md
+    OPEN_SOURCE_RELEASE.md
+    PACKAGING_NOTE.md
+  examples/
+    seed-projects.json
+  scripts/
+    smoke_test.py
+  .github/
+    ISSUE_TEMPLATE/
+  start.sh
+```
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [API Reference](docs/API.md)
+- [CI Recipe](docs/CI.md)
+- [Open Source Release Checklist](docs/OPEN_SOURCE_RELEASE.md)
+- [Packaging Note](docs/PACKAGING_NOTE.md)
+- [Roadmap](ROADMAP.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security](SECURITY.md)
+
+## Development
+
+Compile check:
+
+```bash
+python3 -m py_compile app/server.py scripts/smoke_test.py
+```
+
+Database seed smoke test:
+
+```bash
+python3 scripts/smoke_test.py --db-init-only
+```
+
+Running server smoke test:
+
+```bash
+./start.sh
+python3 scripts/smoke_test.py --url http://127.0.0.1:8766
+```
+
+## Roadmap Snapshot
+
+- Import/export project packs.
+- Safer schema migrations.
+- Optional authentication for private LAN usage.
+- Optional LLM provider adapters for question answering.
+- More node/DAG views for agent workflows.
+
+See [ROADMAP.md](ROADMAP.md) for the full plan.
+
+## License
+
+MIT License. See [LICENSE](LICENSE).

@@ -1,0 +1,26 @@
+[
+  {
+    "emoji": "🛰️",
+    "name": "Command Center Upgrade",
+    "status": "🟢进行",
+    "ball": "🔴你",
+    "what": "Turn scattered project notes into an operating dashboard.",
+    "just_done": "Packaged the local dashboard as an open-source project.",
+    "doing_next": "Add import/export and safer workflow templates.",
+    "blocker": "No public auth yet.",
+    "path": "app/",
+    "category": "core"
+  },
+  {
+    "emoji": "🏛️",
+    "name": "SOP Factory",
+    "status": "⬜待补",
+    "ball": "❔待定",
+    "what": "Convert repeatable work into node-based workflows.",
+    "just_done": "",
+    "doing_next": "Define checkpoint and rollback fields.",
+    "blocker": "",
+    "path": "docs/",
+    "category": "workflow"
+  }
+]

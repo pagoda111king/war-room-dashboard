@@ -8,7 +8,16 @@
       "app/index.html",
       "README.md",
       "PROJECT.md",
-      "start.sh"
+      "start.sh",
+      "LICENSE",
+      "CONTRIBUTING.md",
+      "SECURITY.md",
+      "CHANGELOG.md",
+      "ROADMAP.md",
+      "docs/",
+      "examples/",
+      "scripts/smoke_test.py",
+      ".github/"
     ],
     "private": [
       "app/项目台.db",
@@ -19,6 +28,6 @@
   },
   "workflow": {
     "start": "cd app && python3 server.py",
-    "qa": "open http://127.0.0.1:8766 and verify command strip, project board, search, filters, and knowledge nudge"
+    "qa": "python3 -m py_compile app/server.py scripts/smoke_test.py && python3 scripts/smoke_test.py --db-init-only && open http://127.0.0.1:8766 and verify command strip, project board, search, filters, and knowledge nudge"
   }
 }

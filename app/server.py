@@ -666,6 +666,25 @@ class Handler(BaseHTTPRequestHandler):
             except FileNotFoundError:
                 self._send(500, b"index.html missing", "text/plain")
             return
+        if path == "/api/health":
+            try:
+                c = conn()
+                tables = ["projects", "commits", "artifacts", "tasks", "plans", "cards", "reviews"]
+                counts = {
+                    table: c.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                    for table in tables
+                }
+                c.close()
+                self._json(200, {
+                    "ok": True,
+                    "app": "war-room-dashboard",
+                    "version": "0.1.0",
+                    "database": os.path.basename(DB),
+                    "counts": counts,
+                })
+            except Exception as e:
+                self._json(500, {"ok": False, "error": str(e)})
+            return
         if path == "/api/openmaic/status":
             try:
                 with urllib.request.urlopen(OPENMAIC_URL, timeout=2) as r:
