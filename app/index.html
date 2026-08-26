@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🗂️ 项目台 · 中枢</title>
+<style>
+  :root{--bg:#f7f7f5;--card:#fff;--line:#e8e8e6;--ink:#37352f;--grey:#9b9a97;
+    --blue:#2f6feb;--shadow:0 1px 2px rgba(15,15,15,.06),0 2px 8px rgba(15,15,15,.05);}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",sans-serif;}
+  header{position:sticky;top:0;z-index:10;background:rgba(247,247,245,.9);
+    backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid var(--line);padding:16px 32px 0;}
+  h1{margin:0;font-size:21px;letter-spacing:.5px}
+  .sub{color:var(--grey);font-size:13px;margin-top:3px}
+  .tabs{display:flex;gap:4px;margin-top:12px}
+  .tab{font:inherit;font-size:14px;cursor:pointer;border:none;background:none;color:var(--grey);
+    padding:8px 14px;border-bottom:2px solid transparent}
+  .tab.on{color:var(--ink);border-bottom-color:var(--ink);font-weight:600}
+  .opsbar{display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:8px;margin:12px 0 0}
+  .opscard{background:#fff;border:1px solid var(--line);border-radius:8px;padding:9px 11px;box-shadow:var(--shadow);min-height:62px}
+  .opscard span{display:block;font-size:11px;color:var(--grey);margin-bottom:4px}
+  .opscard b{font-size:20px;line-height:1.1}
+  .opscard small{display:block;font-size:11px;color:var(--grey);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .opscard.warn b{color:#eb5757}
+  .opscard.go{cursor:pointer;transition:.15s}
+  .opscard.go:hover{border-color:var(--blue);transform:translateY(-1px)}
+  .barline{display:flex;align-items:center;gap:10px;padding:14px 0;flex-wrap:wrap}
+  button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink);
+    border-radius:8px;padding:6px 12px;transition:.15s}
+  button:hover{background:#efefee}
+  button.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+  button.primary:hover{filter:brightness(1.07)}
+  button.ghost{border:none;background:none;color:var(--grey);padding:4px 8px;font-size:13px}
+  button.ghost:hover{color:var(--ink);background:#efefee}
+  .toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--grey);
+    border:1px solid var(--line);border-radius:8px;padding:6px 12px;user-select:none}
+  .toggle input{accent-color:#eb5757}
+  .searchInput,.filterSelect{font:inherit;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:6px 10px;outline:none}
+  .searchInput{min-width:240px}
+  .searchInput:focus,.filterSelect:focus{border-color:var(--blue);box-shadow:0 0 0 2px #2f6feb22}
+  .legend{font-size:12px;color:var(--grey);margin-left:auto}
+  .wrap{padding:8px 32px 90px;max-width:1500px}
+
+  /* 项目板 */
+  #board{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 16px 12px;
+    box-shadow:var(--shadow);position:relative;transition:.15s}
+  .card:hover{box-shadow:0 4px 14px rgba(15,15,15,.09)}
+  .ctitle{display:flex;align-items:center;gap:8px}
+  .emoji{font-size:22px;width:30px;text-align:center;outline:none;border-radius:6px}
+  .emoji:focus{background:#eef}
+  .name{font-size:17px;font-weight:600;flex:1;outline:none;border-radius:6px;padding:2px 4px}
+  .name:focus{background:#f0f4ff}
+  .del{opacity:0;border:none;background:none;color:var(--grey);font-size:18px;padding:0 4px;transition:.15s}
+  .card:hover .del{opacity:1}
+  .del:hover{color:#eb5757}
+  .pills{display:flex;gap:8px;margin:12px 0 6px}
+  select{font:inherit;border:none;border-radius:20px;padding:5px 12px;cursor:pointer;font-size:13px;
+    font-weight:500;appearance:none;outline:none}
+  select:focus{box-shadow:0 0 0 2px #2f6feb44}
+  .field{margin-top:10px}
+  .label{font-size:11px;letter-spacing:.5px;color:var(--grey);text-transform:uppercase;margin-bottom:2px}
+  .val{font-size:14px;line-height:1.5;outline:none;border-radius:6px;padding:3px 5px;min-height:22px;
+    white-space:pre-wrap;word-break:break-word}
+  .val:hover{background:#fafafa}
+  .val:focus{background:#f0f4ff}
+  .val:empty:before{content:attr(data-ph);color:#c4c4c2}
+  .val.path{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#787774}
+  .cardfoot{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+  .lastm{font-size:12px;color:var(--grey);margin-right:auto}
+
+  /* 提交面板 */
+  .panel{margin-top:10px;background:#fbfbfa;border:1px solid var(--line);border-radius:10px;padding:12px;display:none}
+  .panel.open{display:block}
+  .preview{font-size:13px;color:#555;background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px;line-height:1.5}
+  textarea,input.tin{font:inherit;width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;outline:none;background:#fff}
+  textarea:focus,input.tin:focus{border-color:var(--blue)}
+  .arttoggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--grey);margin:10px 0 6px;user-select:none;cursor:pointer}
+  .artbox{display:none;gap:8px;flex-direction:column}
+  .artbox.open{display:flex}
+  .row2{display:flex;gap:8px}
+  .row2>*{flex:1}
+  .psel{border:1px solid var(--line);border-radius:8px;background:#fff;padding:6px 10px}
+  .pbtns{display:flex;gap:8px;margin-top:10px}
+
+  /* 卡内时间线 */
+  .tl{margin-top:8px;display:none}
+  .tl.open{display:block}
+  .tlrow{font-size:13px;padding:7px 0;border-bottom:1px dashed var(--line);display:flex;gap:8px;align-items:baseline}
+  .tlrow:last-child{border-bottom:none}
+  .tltime{color:var(--blue);font-weight:600;white-space:nowrap}
+  .tldelta{color:var(--grey);font-size:11px;white-space:nowrap}
+  .tlbody{flex:1;line-height:1.5}
+  .badge{display:inline-block;font-size:11px;padding:1px 8px;border-radius:10px;margin-left:4px}
+
+  /* 今日时间线 · 项目泳道 */
+  #swim{border:1px solid var(--line);border-radius:12px;background:#fff;padding:6px 0;overflow:hidden}
+  .swrow{display:grid;grid-template-columns:160px 1fr;align-items:center;height:42px;border-bottom:1px solid #f0f0ee}
+  .swrow:last-child{border-bottom:none}
+  .swhead{height:28px}
+  .swlabel{font-size:13px;padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    border-right:1px solid var(--line);height:100%;display:flex;align-items:center;gap:4px}
+  .swlabel.active{background:#e7f7ec;color:#1a7f37;font-weight:600}
+  .dot-n{font-size:11px;background:#1a7f37;color:#fff;border-radius:10px;padding:0 6px}
+  .swtrack{position:relative;height:100%;margin-right:14px;
+    background:repeating-linear-gradient(to right,transparent,transparent calc(100%/24 - 1px),#f0f0ee calc(100%/24 - 1px),#f0f0ee calc(100%/24))}
+  .swhead .swtrack{background:none}
+  .swtick{position:absolute;top:8px;transform:translateX(-50%);font-size:10px;color:#bbb}
+  .swdot{position:absolute;top:50%;width:13px;height:13px;border-radius:50%;background:var(--blue);
+    transform:translate(-50%,-50%);cursor:pointer;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:.12s}
+  .swdot:hover{width:18px;height:18px;background:#1a5fd0}
+  .nowline{position:absolute;top:0;bottom:0;width:2px;background:#eb5757;opacity:.55}
+  .detbox{margin-top:14px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.6;box-shadow:var(--shadow)}
+  /* 切换钮 + 竖向详情 */
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg button{border:none;border-radius:0;background:#fff;padding:6px 12px;font-size:13px}
+  .seg button.on{background:var(--ink);color:#fff}
+  .vcols{display:flex;gap:16px;overflow-x:auto;padding-bottom:10px;align-items:flex-start}
+  .vcol{flex:1;min-width:250px;max-width:360px}
+  .vhead{font-size:14px;font-weight:600;padding:9px 12px;border-radius:10px;background:#f0f0ee;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .vhead.active{background:#e7f7ec;color:#1a7f37}
+  .vempty{color:#c4c4c2;font-size:13px;text-align:center;padding:18px 0}
+  .vev{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;box-shadow:var(--shadow)}
+  .vtime{font-size:13px;font-weight:700;color:var(--blue);margin-bottom:4px}
+  .vfirst{font-weight:400;color:#9b9a97;font-size:11px}
+  .vbody{font-size:13.5px;line-height:1.55}
+  .vgap{position:relative;text-align:center;padding:7px 0}
+  .vgap span{font-size:11px;color:#9b9a97;background:#f7f7f5;padding:0 8px;position:relative;z-index:1}
+  .vgap:before{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--line);transform:translateX(-50%)}
+  /* 竖·详情 = 全天24h日历网格(表头粘顶 · 左轴粘左 · 列可横滑) */
+  .vgrid{max-height:72vh;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff;position:relative}
+  .vinner{width:max-content;min-width:100%}
+  .vheadrow{display:flex;position:sticky;top:0;z-index:7}
+  .vcorner{position:sticky;left:0;z-index:9;width:54px;flex-shrink:0;height:36px;background:#fff;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:10px;color:#bbb}
+  .vhead2{width:232px;flex-shrink:0;height:36px;background:#f7f7f5;display:flex;align-items:center;gap:5px;padding:0 10px;font-size:13px;font-weight:600;border-right:1px solid #f0f0ee;border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .vhead2.active{background:#e7f7ec;color:#1a7f37}
+  .vbodyrow{display:flex}
+  .vaxis{position:sticky;left:0;z-index:6;width:54px;flex-shrink:0;background:#fff;border-right:1px solid var(--line)}
+  .vhr{position:absolute;left:0;right:0;transform:translateY(-50%);font-size:10px;color:#bbb;padding-left:6px;border-top:1px solid #f4f4f2}
+  .vtrack2{width:232px;flex-shrink:0;position:relative;border-right:1px solid #f0f0ee;background:repeating-linear-gradient(to bottom,transparent 0,transparent 49px,#f4f4f2 49px,#f4f4f2 50px)}
+  .vcard{position:absolute;left:5px;right:5px;background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:8px;padding:6px 9px;box-shadow:0 1px 4px rgba(0,0,0,.12);z-index:2}
+  .vcardt{font-size:12px;font-weight:700;color:var(--blue)}
+  .vcardg{font-weight:400;color:#9b9a97;font-size:10px}
+  .vcardb{font-size:12.5px;line-height:1.45;margin-top:2px}
+  .vnow2{position:absolute;left:0;right:0;height:2px;background:#eb5757;opacity:.55;z-index:3}
+  /* 今日时间线 · 预期行(粘在项目名表头下方,长期悬浮)*/
+  .vplanrow{display:flex;position:sticky;top:36px;z-index:6}
+  .vplancorner{position:sticky;left:0;z-index:8;width:54px;flex-shrink:0;background:#fff;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:13px}
+  .vplancell{width:232px;flex-shrink:0;background:#f3faf4;border-right:1px solid #f0f0ee;border-bottom:1px solid var(--line);padding:5px 9px;font-size:11.5px;color:#1a7f37;line-height:1.45;white-space:normal;overflow:hidden}
+  .vplanday{color:#9b9a97;font-size:10px}
+  .empty{color:var(--grey);text-align:center;padding:60px 0}
+
+  /* 成果库 */
+  .matbar{display:flex;gap:8px;margin-bottom:14px}
+  .mchip{font-size:13px;border:1px solid var(--line);border-radius:20px;padding:5px 14px;cursor:pointer;background:#fff}
+  .mchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .arttype{font-size:13px;font-weight:700;color:var(--grey);margin:18px 0 8px;letter-spacing:.5px}
+  #arts{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+  .acard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 14px;box-shadow:var(--shadow);position:relative}
+  .acard h4{margin:0 0 6px;font-size:15px}
+  .ameta{font-size:12px;color:var(--grey);line-height:1.6}
+  .apath{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#787774;word-break:break-all}
+
+  /* 任务甘特 */
+  #gantt{border:1px solid var(--line);border-radius:12px;background:#fff;padding:6px 0 12px;overflow-x:auto}
+  .grow{display:grid;grid-template-columns:200px 1fr;align-items:center;height:38px;border-bottom:1px solid #f4f4f2}
+  .grow:last-child{border-bottom:none}
+  .ghead{height:26px}
+  .glabel{font-size:13px;padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--line);height:100%;display:flex;align-items:center;gap:6px}
+  .gdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block}
+  .gtrack{position:relative;height:100%;margin-right:16px}
+  .gtick{position:absolute;top:6px;transform:translateX(-50%);font-size:10px;color:#bbb;white-space:nowrap}
+  .gproj{font-size:13px;font-weight:700;color:var(--grey);padding:10px 10px 2px;letter-spacing:.3px}
+  .gbar{position:absolute;top:50%;transform:translateY(-50%);height:21px;border-radius:6px;cursor:pointer;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.15);display:flex;align-items:center;min-width:8px}
+  .gbar:hover{filter:brightness(1.08);box-shadow:0 2px 7px rgba(0,0,0,.22)}
+  .gbar.overdue{outline:2px solid #eb5757;outline-offset:1px}
+  .gfill{position:absolute;left:0;top:0;bottom:0;background:rgba(0,0,0,.22)}
+  .gbarlab{position:relative;z-index:1;font-size:10px;color:#fff;padding:0 7px;white-space:nowrap;text-shadow:0 1px 1px rgba(0,0,0,.35)}
+  .gnow{position:absolute;top:0;bottom:0;width:2px;background:#eb5757;opacity:.5}
+  .urow{font-size:13px;padding:7px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;margin:5px 0;cursor:pointer}
+  .urow:hover{background:#fafafa}
+  .trow{margin-top:8px;display:flex;flex-direction:column;gap:3px}
+  .trow2{margin-top:8px;display:flex;gap:10px}
+  .trow2>span{flex:1;display:flex;flex-direction:column;gap:3px}
+  #taskedit label{font-size:11px;color:var(--grey)}
+  #taskedit .tin,#taskedit select{border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:inherit;background:#fff}
+  #taskedit input[type=range]{width:100%}
+
+  /* 计划·预期 */
+  .plancard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0;box-shadow:var(--shadow)}
+  .pc-content{font-size:15px;line-height:1.5;margin-bottom:6px}
+  .pc-meta{font-size:12.5px;color:var(--grey)}
+  .pc-btns{display:flex;gap:8px;margin-top:10px}
+  #plans .arttype{margin:16px 0 6px}
+
+  /* 知识对战 */
+  .kcard{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 13px;margin:7px 0;box-shadow:var(--shadow)}
+  .battle{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow);max-width:760px}
+  .bq{font-size:17px;font-weight:600;line-height:1.5;margin:8px 0 14px}
+  #bopts{display:flex;flex-direction:column;gap:8px}
+  .bopt{text-align:left;font-size:14px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;transition:.12s}
+  .bopt:hover{background:#f0f4ff;border-color:var(--blue)}
+  .bopt.correct{background:#dbf0e0;border-color:#1a7f37;color:#1a7f37;font-weight:600}
+  .bopt.wrong{background:#ffd9d6;border-color:#eb5757;color:#eb5757}
+  .bfb{margin-top:14px;font-size:14px;line-height:1.55;background:#fbfbfa;border:1px solid var(--line);border-radius:10px;padding:12px}
+  .maicmark{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#6b5b00;background:#fff8d6;border:1px solid #eadb88;border-radius:999px;padding:3px 8px;margin-left:8px}
+  .maicgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+  .agentturn{border:1px solid var(--line);background:#fbfbfa;border-radius:12px;padding:11px 12px;line-height:1.55}
+  .agenttop{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:12px;color:var(--grey)}
+  .agentrole{font-weight:700;color:var(--ink)}
+  .agentlabel{border:1px solid var(--line);border-radius:999px;padding:1px 7px;background:#fff}
+  .scoregrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+  .scorepill{border:1px solid var(--line);border-radius:10px;background:#fff;padding:8px;text-align:center}
+  .scorepill b{display:block;font-size:18px;color:var(--blue);margin-bottom:2px}
+  .battlehint{font-size:12px;color:var(--grey);line-height:1.5;margin-top:8px}
+  .qbox{margin-top:12px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:11px 12px}
+  .qtop{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;font-weight:700}
+  .qstate{font-size:12px;color:var(--grey);font-weight:400;margin-left:auto}
+  .qbox textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;padding:9px 10px;resize:vertical;font-family:inherit}
+  .qactions{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .qthread{display:flex;flex-direction:column;gap:7px;margin-bottom:8px}
+  .qmsg{border:1px solid var(--line);border-radius:8px;padding:8px 9px;line-height:1.55;white-space:pre-wrap;background:#fbfbfa}
+  .qmsg.user{background:#f0f4ff;border-color:#c9d8ff}
+  .qmsg.assistant{background:#f7fbf7;border-color:#cfe7d2}
+  .questionlog{margin-top:14px;max-width:900px}
+  .questionitem{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:7px 0;box-shadow:var(--shadow)}
+  .questionitem.closed{opacity:.68}
+  .qmeta{font-size:12px;color:var(--grey);margin-top:4px}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center}
+  .modal{background:#fff;border-radius:16px;padding:28px;max-width:400px;text-align:center;box-shadow:0 12px 44px rgba(0,0,0,.35)}
+  .modal h2{margin:0 0 10px;font-size:22px}
+  .modal p{color:#555;line-height:1.6}
+  .modal button{margin:6px}
+  .review-nudge{position:fixed;right:22px;bottom:22px;z-index:180;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 32px rgba(0,0,0,.18);padding:14px 15px;max-width:330px}
+  .review-nudge h3{margin:0 0 5px;font-size:16px}
+  .review-nudge p{margin:0 0 10px;color:#555;font-size:13px;line-height:1.5}
+  .review-nudge .nudge-actions{display:flex;gap:8px;justify-content:flex-end}
+
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#37352f;
+    color:#fff;font-size:13px;padding:8px 16px;border-radius:8px;opacity:0;transition:.25s;pointer-events:none;z-index:99}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* 轮播原理图 */
+  .logiclabel{font-size:12px;color:#8a6d3b;font-weight:700;margin-top:16px}
+  .cdiagram{margin:8px auto 0;max-width:540px;background:#fafafa;border:1px solid #ececec;border-radius:10px;padding:12px;overflow:auto}
+  .cdiagram svg{max-width:100%;height:auto}
+  /* 每日复盘 */
+  .revdate{font-size:17px;font-weight:700;margin:22px 0 4px;color:#2b2b29;border-bottom:2px solid #ece9e3;padding-bottom:6px}
+  .revsec{font-size:12px;font-weight:700;color:#8a6d3b;background:#fbf3e2;display:inline-block;padding:3px 11px;border-radius:11px;margin:14px 0 4px}
+  .revitem{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid #eceae6;border-radius:12px;padding:13px 15px;margin:8px 0;transition:.15s}
+  .revitem.on{background:#f0f9f2;border-color:#b6e0c2}
+  .revchk{flex-shrink:0;margin-top:2px}
+  .revchk input{width:20px;height:20px;cursor:pointer}
+  .revitem b{font-size:14.5px}
+  .revdetail{font-size:13.5px;line-height:1.6;color:#4a4a47;margin:5px 0 8px}
+  .revnote{width:100%;border:1px dashed #d7d4ce;border-radius:8px;padding:8px;font-size:13px;background:#fcfcfb;resize:vertical;min-height:36px;box-sizing:border-box;font-family:inherit}
+  .revnote:focus{border-color:#2f6feb;outline:none;background:#fff}
+  .revdel{flex-shrink:0;color:#c4c4c2}
+  /* 每日开工时间 */
+  .daystart{margin-top:10px}
+  .ds-badge{display:inline-block;background:#fff6e5;border:1px solid #f0c878;color:#8a5a00;font-size:12.5px;padding:4px 13px;border-radius:20px;cursor:pointer;user-select:none}
+  .ds-badge:hover{background:#ffefcf}
+  .ds-hist{display:none;margin-top:6px;font-size:12px;color:#777;background:#fff;border:1px solid #eee;border-radius:8px;padding:6px 12px;max-width:280px}
+  .ds-hist.open{display:block}
+  .ds-hist .dsrow{padding:3px 0;border-bottom:1px solid #f3f3f3;display:flex;justify-content:space-between;gap:14px}
+  .ds-hist .dsrow:last-child{border-bottom:none}
+  /* 节点看板 */
+  .nodegrid{display:grid;grid-template-columns:minmax(360px,1.2fr) minmax(320px,.8fr);gap:16px;margin-top:12px}
+  .nodepanel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow)}
+  .nodepanel h3{margin:0 0 8px;font-size:16px}
+  .nodepanel p{font-size:13.5px;line-height:1.6;color:#555;margin:8px 0}
+  .nodeactions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .svc{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:9px;background:#fbfbfa}
+  .svc b{font-size:14px}
+  .svcsmall{font-size:12px;color:var(--grey);margin-top:2px}
+  .statusdot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#b9b9b6;margin-right:6px}
+  .statusdot.on{background:#1a7f37}
+  .statusdot.off{background:#eb5757}
+  .nodepill{display:inline-block;background:#eef2ff;border:1px solid #d9e2ff;border-radius:999px;padding:3px 8px;font-size:12px;margin:3px 4px 3px 0}
+  .graphbox{min-height:280px;background:#fbfbfa;border:1px dashed #d7d4ce;border-radius:12px;padding:10px;overflow:auto}
+  /* 概念笔记 */
+  .learncard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px;margin:10px 0;box-shadow:var(--shadow)}
+  .learnhead{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+  .learnhead h3{margin:0;font-size:16px;flex:1}
+  .learnstatus{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 8px;background:#fbfbfa}
+  .learnmeta{font-size:12px;color:var(--grey);margin-top:2px}
+  .learncols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+  .learncols label,.promptbox label{display:block;font-size:11px;color:var(--grey);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px}
+  .learncols textarea,.promptbox textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit;font-size:13px;line-height:1.5;background:#fff}
+  .promptbox textarea{min-height:150px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+  .learnflow{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px}
+  .learnstep{font-size:12px;background:#eef2ff;border:1px solid #d9e2ff;border-radius:999px;padding:3px 8px}
+  @media (max-width: 980px){
+    .opsbar{grid-template-columns:repeat(2,minmax(0,1fr))}
+    header{padding-left:18px;padding-right:18px}
+    .wrap{padding-left:18px;padding-right:18px}
+    .searchInput{min-width:100%;flex-basis:100%}
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>try{if(window.mermaid)mermaid.initialize({startOnLoad:false,theme:'neutral',securityLevel:'loose',flowchart:{htmlLabels:true,curve:'basis'}});}catch(e){}</script>
+</head>
+<body>
+<header>
+  <h1>🗂️ 项目台</h1>
+  <div class="sub">老板的全局视图 · 你直接写,改完自动存,提交记时间 · Claude 只读</div>
+  <div id="daystart" class="daystart"></div>
+  <div id="opsbar" class="opsbar"></div>
+  <div class="tabs">
+    <button class="tab on" data-tab="board" onclick="switchTab('board')">📋 项目板</button>
+    <button class="tab" data-tab="nodes" onclick="switchTab('nodes')">🧭 节点看板</button>
+    <button class="tab" data-tab="concepts" onclick="switchTab('concepts')">📝 概念笔记</button>
+    <button class="tab" data-tab="timeline" onclick="switchTab('timeline')">⏱ 今日时间线</button>
+    <button class="tab" data-tab="plans" onclick="switchTab('plans')">📅 计划·预期</button>
+    <button class="tab" data-tab="gantt" onclick="switchTab('gantt')">📊 任务甘特</button>
+    <button class="tab" data-tab="arts" onclick="switchTab('arts')">📦 成果库</button>
+    <button class="tab" data-tab="cards" onclick="switchTab('cards')">🎴 知识对战</button>
+    <button class="tab" data-tab="reviews" onclick="switchTab('reviews')">📓 每日复盘</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- 项目板 -->
+  <div id="view-board">
+    <div class="barline">
+      <button class="primary" onclick="addProject()">+ 新项目</button>
+      <label class="toggle"><input type="checkbox" id="mine" onchange="loadAll()"> 只看 🔴 球在我</label>
+      <input id="boardSearch" class="searchInput" type="search" placeholder="搜索项目 / 下一步 / 卡点 / 路径" oninput="boardQuery=this.value;renderBoard()">
+      <select id="boardStatus" class="filterSelect" onchange="boardStatus=this.value;renderBoard()">
+        <option value="全部">全部状态</option>
+        <option value="进行">进行</option>
+        <option value="卡住">卡住</option>
+        <option value="暂停">暂停</option>
+        <option value="完成">完成</option>
+        <option value="待补">待补</option>
+      </select>
+      <span class="legend">球在谁手:🔴你 / 🟡项目Claude / ⚪外部 / ❔待定</span>
+    </div>
+    <div id="board"></div>
+  </div>
+
+  <!-- 节点看板 -->
+  <div id="view-nodes" style="display:none">
+    <div class="barline">
+      <button class="primary" onclick="openOpenMaic()">打开 OpenMAIC 本体</button>
+      <button onclick="switchTab('cards')">去知识对战</button>
+      <button onclick="renderNodes()">刷新状态</button>
+      <span class="legend">节点 DAG = 复杂项目骨架:节点使命 / 准入 / 输出 / 验收 / checkpoint / 回退</span>
+    </div>
+    <div class="nodegrid">
+      <div class="nodepanel">
+        <h3>复杂项目节点 DAG</h3>
+        <p>来自中枢总地图环4:先 plan 拆节点,再确定正式总 goal。主干尽量 DAG,节点内部允许 retry / rollback / human-in-the-loop。</p>
+        <div id="nodeDagGraph" class="graphbox"></div>
+      </div>
+      <div class="nodepanel">
+        <h3>服务入口</h3>
+        <div id="openmaicStatus" class="svc"><span><span class="statusdot"></span><b>OpenMAIC 本体</b><div class="svcsmall">检测中...</div></span><button onclick="openOpenMaic()">打开</button></div>
+        <div class="svc"><span><span class="statusdot on"></span><b>中枢项目台</b><div class="svcsmall">http://127.0.0.1:8766</div></span><button onclick="switchTab('board')">项目板</button></div>
+        <div class="svc"><span><span class="statusdot on"></span><b>知识对战</b><div class="svcsmall">MAIC 对战 / SM-2 / 疑问记录</div></span><button onclick="switchTab('cards')">进入</button></div>
+        <div class="nodeactions">
+          <span class="nodepill">Radar</span><span class="nodepill">Evidence Normalize</span><span class="nodepill">Data Modeling</span>
+          <span class="nodepill">Check</span><span class="nodepill">Score</span><span class="nodepill">Sediment</span>
+        </div>
+      </div>
+      <div class="nodepanel">
+        <h3>OpenMAIC 融合路径</h3>
+        <div id="maicDagGraph" class="graphbox"></div>
+      </div>
+      <div class="nodepanel">
+        <h3>当前项目快照</h3>
+        <div id="nodeProjectStats"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 概念笔记 -->
+  <div id="view-concepts" style="display:none">
+    <div class="barline">
+      <button class="primary" onclick="toggleConceptForm()">+ 把概念放进笔记</button>
+      <button onclick="openOpenMaic()">打开 OpenMAIC 学习</button>
+      <span class="legend" id="conceptstat"></span>
+    </div>
+    <div class="nodepanel">
+      <b>学习节点 SOP</b>
+      <div class="learnflow">
+        <span class="learnstep">N00 存入笔记库</span>
+        <span class="learnstep">N10 OpenMAIC 学习互动</span>
+        <span class="learnstep">N20 补关键点/例子/误区/应用</span>
+        <span class="learnstep">N30 毕业到知识对战</span>
+      </div>
+      <p>没学会的概念先不要进知识对战。先用 OpenMAIC 学懂,再把丰富后的知识面卡片化。</p>
+    </div>
+    <div id="conceptform"></div>
+    <div id="conceptnotes"></div>
+  </div>
+
+  <!-- 今日时间线(竖·详情 / 横·总览)-->
+  <div id="view-timeline" style="display:none">
+    <div class="barline">
+      <button class="ghost" onclick="shiftDay(-1)">◀</button>
+      <b id="tldate" style="min-width:180px;text-align:center"></b>
+      <button class="ghost" onclick="shiftDay(1)">▶</button>
+      <button class="ghost" onclick="gotoToday()">今天</button>
+      <span class="seg"><button id="mV" class="on" onclick="setMode('vertical')">竖 · 详情</button><button id="mH" onclick="setMode('horizontal')">横 · 总览</button></span>
+      <span class="legend" id="tllegend"></span>
+    </div>
+    <div id="tlcanvas"></div>
+    <div id="swimdetail"></div>
+  </div>
+
+  <!-- 任务甘特 -->
+  <div id="view-gantt" style="display:none">
+    <div class="barline">
+      <button class="primary" onclick="addTask()">+ 任务</button>
+      <span class="legend">横轴=日期 · 一行一任务 · 条长=起止 · 条色=状态(蓝进行/绿完成/红卡住/灰待办)· 左圆点=目标(红G1/蓝G2)· 深色=完成% · 红框=逾期 · 竖线=今天 · 点条编辑</span>
+    </div>
+    <div id="gantt"></div>
+    <div id="unsched"></div>
+    <div id="taskedit"></div>
+  </div>
+
+  <!-- 成果库 -->
+  <div id="view-arts" style="display:none">
+    <div class="matbar" id="matbar"></div>
+    <div id="arts"></div>
+  </div>
+
+  <!-- 计划·预期 -->
+  <div id="view-plans" style="display:none">
+    <div class="barline">
+      <button class="primary" onclick="togglePlanForm()">+ 写预期</button>
+      <span class="legend" id="planstat"></span>
+    </div>
+    <div id="planform"></div>
+    <div id="plans"></div>
+  </div>
+
+  <!-- 知识对战 -->
+  <div id="view-cards" style="display:none">
+    <div class="barline">
+      <button class="primary" id="battleBtn" onclick="startBattle()">⚔️ 开始对战</button>
+      <button id="maicBattleBtn" onclick="startMaicBattle()">🧑‍🏫 MAIC 对战</button>
+      <button onclick="toggleCardForm()">+ 加卡</button>
+      <button id="carouselBtn" onclick="toggleCarousel()">🎞️ 金句轮播</button>
+      <span class="legend" id="cardstat"></span>
+    </div>
+    <div id="battlebox"></div>
+    <div id="cardform"></div>
+    <div id="cardlist"></div>
+    <div id="questionlog"></div>
+  </div>
+
+  <!-- 每日复盘 -->
+  <div id="view-reviews" style="display:none">
+    <div class="barline">
+      <span class="legend">咱俩复盘后,我把「你今天做的事 + 建议改进」写成几条 → 你 ☑️ 认同的、✍️ 写下自己的想法</span>
+      <span class="legend" id="revstat" style="margin-left:auto"></span>
+    </div>
+    <div id="reviews"></div>
+  </div>
+</div>
+
+<div id="toast">已保存</div>
+
+<script>
+const API='/api/projects', CAPI='/api/commits', AAPI='/api/artifacts', TAPI='/api/tasks', LAPI='/api/plans', KAPI='/api/cards', RAPI='/api/reviews', DSAPI='/api/daystart', BAPI='/api/battle', QAPI='/api/card-questions', OAPI='/api/openmaic/status', NAPI='/api/concept-notes';
+const STATUS=['🟢进行','⏸暂停','⛔卡住','✅完成','⬜待补'];
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const BALL=['🔴你','🟡项目Claude','⚪外部','❔待定'];
+const FIELDS=[['what','是什么'],['just_done','刚刚完成的'],['doing_next','当前进行中 · 下一步期待的'],
+              ['blocker','卡点'],['path','位置']];
+const STATUS_BG={'🟢进行':'#dbf0e0','⏸暂停':'#fbe6c2','⛔卡住':'#ffd9d6','✅完成':'#d8e6ff','⬜待补':'#ededec'};
+const BALL_BG={'🔴你':'#ffd9d6','🟡项目Claude':'#fbe6c2','⚪外部':'#ededec','❔待定':'#ededec'};
+const CATS=['工作','生活'];
+const CAT_BG={'工作':'#eef2ff','生活':'#fdecd9'};
+const ATYPES=['SOP流程','想法','文档','链接','数据','其他'];
+const MATS=['初步确定','实验中','成熟阶段'];
+const MAT_BG={'初步确定':'#ededec','实验中':'#fbe6c2','成熟阶段':'#dbf0e0'};
+const TSTATUS=['待办','进行','卡住','完成'];
+const GOALS=['G1赚钱','G2成长','两者'];
+const TSTAT_COLOR={'待办':'#b9b9b6','进行':'#2f6feb','卡住':'#eb5757','完成':'#1a7f37'};
+const GOAL_COLOR={'G1赚钱':'#eb5757','G2成长':'#2f6feb','两者':'#9b59b6'};
+
+let projects=[], commits=[], artifacts=[], tasks=[], plans=[], cards=[], reviews=[], questions=[], conceptNotes=[], activeTab='board', matFilter='全部', viewDate=dayStr(new Date()), timelineMode='vertical', boardQuery='', boardStatus='全部';
+
+async function loadAll(){
+  [projects,commits,artifacts,tasks,plans,cards,reviews,questions,conceptNotes]=await Promise.all([
+    fetch(API).then(r=>r.json()), fetch(CAPI).then(r=>r.json()), fetch(AAPI).then(r=>r.json()), fetch(TAPI).then(r=>r.json()), fetch(LAPI).then(r=>r.json()), fetch(KAPI).then(r=>r.json()), fetch(RAPI).then(r=>r.json()), fetch(QAPI).then(r=>r.json()).catch(()=>[]), fetch(NAPI).then(r=>r.json()).catch(()=>[])]);
+  renderOpsBar();
+  renderActive();
+  if(!window._checkedForce){ window._checkedForce=true; setTimeout(checkForceReview, 300); }
+  if(!window._dayRecorded){ window._dayRecorded=true; recordDayStart(); }
+}
+
+/* ---------- 每日开工时间(当天第一次打开 = 你真正开始的时间) ---------- */
+async function recordDayStart(){
+  try{
+    const today=await fetch(DSAPI,{method:'POST'}).then(r=>r.json());
+    const all=await fetch(DSAPI).then(r=>r.json());
+    renderDayStart(today, all);
+  }catch(e){}
+}
+function renderDayStart(today, all){
+  const el=document.getElementById('daystart'); if(!el) return;
+  const hhmm=(today.started_at||'').slice(11,16);
+  let worked='';
+  if(today.started_at){
+    const d=new Date(today.started_at.replace(' ','T'));
+    const h=(Date.now()-d.getTime())/3600000;
+    if(h>=0&&h<24) worked=` · 已开工 ${h.toFixed(1)}h`;
+  }
+  const wk=['日','一','二','三','四','五','六'];
+  const hist=(all||[]).slice(0,14).map(r=>{
+    let w=''; try{w='周'+wk[new Date(r.date.replace(' ','T')+'T00:00:00').getDay()];}catch(e){}
+    return `<div class="dsrow"><span>${r.date} ${w}</span><span>🌅 ${(r.started_at||'').slice(11,16)}</span></div>`;
+  }).join('');
+  el.innerHTML=`<span class="ds-badge" onclick="document.getElementById('ds-hist').classList.toggle('open')">🌅 今天 ${hhmm||'—'} 开工${worked} <span style="opacity:.55">· 开工记录 ▾</span></span><div id="ds-hist" class="ds-hist">${hist||'还没有记录'}</div>`;
+}
+function renderOpsBar(){
+  const el=document.getElementById('opsbar'); if(!el) return;
+  const today=dayStr(new Date());
+  const active=projects.filter(p=>String(p.status||'').includes('进行')).length;
+  const mine=projects.filter(p=>String(p.ball||'').startsWith('🔴')).length;
+  const blocked=projects.filter(p=>String(p.status||'').includes('卡住') || ((p.blocker||'').trim() && !['无','暂无','none','None'].includes((p.blocker||'').trim()))).length;
+  const dueTasks=tasks.filter(t=>(t.status||'')!=='完成' && t.due_date && t.due_date<=today).length;
+  const dueCards=cards.filter(c=>(c.next_due||'')<=today).length;
+  const openQs=questions.filter(q=>(q.status||'')==='open').length;
+  const recent=commits[0]||{};
+  el.innerHTML=`<div class="opscard go" onclick="setBoardQuick('mine')"><span>球在我</span><b>${mine}</b><small>${active} 个进行中项目</small></div>
+    <div class="opscard go ${blocked?'warn':''}" onclick="setBoardQuick('blocked')"><span>卡点</span><b>${blocked}</b><small>需要拆 checkpoint / 回退</small></div>
+    <div class="opscard go ${dueTasks?'warn':''}" onclick="switchTab('gantt')"><span>到期任务</span><b>${dueTasks}</b><small>今天以前未完成</small></div>
+    <div class="opscard go ${dueCards?'warn':''}" onclick="switchTab('cards')"><span>复习卡</span><b>${dueCards}</b><small>今日到期 / 可对战</small></div>
+    <div class="opscard go ${openQs?'warn':''}" onclick="switchTab('cards')"><span>开放疑问</span><b>${openQs}</b><small>10 分钟窗口自动关闭</small></div>
+    <div class="opscard go" onclick="switchTab('timeline')"><span>最近提交</span><b>${recent.ts?hhmm(recent.ts):'—'}</b><small>${esc(recent.just_done||'还没有提交')}</small></div>`;
+}
+function setBoardQuick(type){
+  switchTab('board');
+  setTimeout(()=>{
+    const mineBox=document.getElementById('mine');
+    const st=document.getElementById('boardStatus');
+    const q=document.getElementById('boardSearch');
+    if(type==='mine'&&mineBox) mineBox.checked=true;
+    if(type==='blocked'&&st) { st.value='卡住'; boardStatus='卡住'; }
+    if(q&&type!=='blocked') { q.value=''; boardQuery=''; }
+    renderBoard();
+  }, 0);
+}
+function switchTab(t){
+  activeTab=t;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  document.getElementById('view-board').style.display   = t==='board'?'':'none';
+  document.getElementById('view-nodes').style.display   = t==='nodes'?'':'none';
+  document.getElementById('view-concepts').style.display = t==='concepts'?'':'none';
+  document.getElementById('view-timeline').style.display= t==='timeline'?'':'none';
+  document.getElementById('view-gantt').style.display    = t==='gantt'?'':'none';
+  document.getElementById('view-arts').style.display    = t==='arts'?'':'none';
+  document.getElementById('view-plans').style.display    = t==='plans'?'':'none';
+  document.getElementById('view-cards').style.display    = t==='cards'?'':'none';
+  document.getElementById('view-reviews').style.display  = t==='reviews'?'':'none';
+  loadAll();
+}
+function renderActive(){
+  if(activeTab==='board') renderBoard();
+  else if(activeTab==='nodes') renderNodes();
+  else if(activeTab==='concepts') renderConceptNotes();
+  else if(activeTab==='timeline') renderTimeline();
+  else if(activeTab==='gantt') renderGantt();
+  else if(activeTab==='plans') renderPlans();
+  else if(activeTab==='cards') renderCards();
+  else if(activeTab==='reviews') renderReviews();
+  else renderArts();
+}
+
+async function openOpenMaic(){
+  let url='http://127.0.0.1:8770';
+  try{ const s=await fetch(OAPI).then(r=>r.json()); if(s.url) url=s.url; }catch(e){}
+  window.open(url,'_blank');
+}
+async function checkOpenMaicStatus(){
+  const box=document.getElementById('openmaicStatus'); if(!box) return;
+  try{
+    const s=await fetch(OAPI).then(r=>r.json());
+    const dot=s.ok?'on':'off';
+    box.innerHTML=`<span><span class="statusdot ${dot}"></span><b>OpenMAIC 本体</b><div class="svcsmall">${esc(s.url)} · ${s.ok?'运行中':'未连通'}</div></span><button onclick="openOpenMaic()">打开</button>`;
+  }catch(e){
+    box.innerHTML=`<span><span class="statusdot off"></span><b>OpenMAIC 本体</b><div class="svcsmall">状态接口不可用</div></span><button onclick="openOpenMaic()">打开</button>`;
+  }
+}
+function renderNodes(){
+  const projectCount=projects.length, activeProjects=projects.filter(p=>String(p.status||'').includes('进行')).length;
+  const taskCount=tasks.length, stuckTasks=tasks.filter(t=>t.status==='卡住').length;
+  const dueCards=cards.filter(c=>(c.next_due||'')<=dayStr(new Date())).length;
+  document.getElementById('nodeProjectStats').innerHTML=`<p><b>项目:</b> ${projectCount} 个,进行中 ${activeProjects} 个</p>
+    <p><b>任务:</b> ${taskCount} 个,卡住 ${stuckTasks} 个</p>
+    <p><b>知识对战:</b> ${cards.length} 张卡,今日到期 ${dueCards} 张</p>
+    <p><b>本轮重点:</b> 用 OpenMAIC 本体做课堂/互动学习,用项目台做中枢入口,用节点 DAG 管复杂项目。</p>`;
+  const nodeDag=`flowchart LR
+    A["N00 Intake<br/>临时目标"] --> B["N10 Plan Scan<br/>读全局记忆/目录"]
+    B --> C["N20 Node DAG<br/>拆节点与依赖"]
+    C --> D["N30 Formal Goal<br/>确定总目标"]
+    D --> E["N40 Node Goals<br/>每节点使命/准入/输出"]
+    E --> F["N50 Checkpoint<br/>验收/回退/人工确认"]
+    F --> G["N60 Sediment<br/>记忆卡/规则/看板"]`;
+  const maicDag=`flowchart LR
+    O["OpenMAIC 本体<br/>localhost:8770"] --> P["项目台入口<br/>localhost:8766"]
+    P --> K["知识对战<br/>MAIC模式"]
+    K --> R["角色反馈<br/>讲解/挑战/裁判/沉淀"]
+    R --> S["SQLite记录<br/>session/event/score"]
+    S --> M["中枢记忆<br/>环4/环5/环6"]`;
+  renderMermaid('nodeDagGraph', nodeDag);
+  renderMermaid('maicDagGraph', maicDag);
+  checkOpenMaicStatus();
+}
+
+function statusLabel(s){
+  return {noted:'已入笔记',learning:'学习中',learned:'已学会待卡片化',graduated:'已进知识对战'}[s]||s||'已入笔记';
+}
+function toggleConceptForm(){
+  const f=document.getElementById('conceptform');
+  if(f.innerHTML){ f.innerHTML=''; return; }
+  f.innerHTML=`<div class="detbox">
+    <div class="trow"><label>概念</label><input class="tin" id="cn_concept" placeholder="例如: Workspace Isolation / 测试效应 / Pydantic"></div>
+    <div class="trow"><label>我现在的理解/问题</label><textarea id="cn_note" rows="3" placeholder="我还没搞懂的是..."></textarea></div>
+    <div class="trow"><label>学习目标</label><textarea id="cn_goal" rows="2" placeholder="希望能讲清楚、能用到哪个项目/节点..."></textarea></div>
+    <div class="pbtns"><button class="primary" onclick="addConceptNote()">存入笔记库</button><button class="ghost" onclick="toggleConceptForm()">取消</button></div>
+  </div>`;
+  document.getElementById('cn_concept').focus();
+}
+async function addConceptNote(){
+  const concept=document.getElementById('cn_concept').value.trim();
+  if(!concept){ toast('先写概念名'); return; }
+  const body={
+    concept,
+    initial_note:document.getElementById('cn_note').value.trim(),
+    learning_goal:document.getElementById('cn_goal').value.trim(),
+    source:'项目台概念笔记'
+  };
+  const note=await fetch(NAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
+  document.getElementById('conceptform').innerHTML='';
+  toast('已存入概念笔记,下一步复制提示词到 OpenMAIC 学习');
+  await loadAll();
+  setTimeout(()=>copyConceptPrompt(note.id), 200);
+}
+function renderConceptNotes(){
+  const box=document.getElementById('conceptnotes'); box.innerHTML='';
+  const counts=conceptNotes.reduce((m,n)=>{m[n.status||'noted']=(m[n.status||'noted']||0)+1;return m;},{});
+  document.getElementById('conceptstat').textContent=`共 ${conceptNotes.length} 条 · 学习中 ${counts.learning||0} · 待卡片化 ${counts.learned||0} · 已毕业 ${counts.graduated||0}`;
+  if(!conceptNotes.length){ box.innerHTML='<div class="empty">还没有概念笔记。点「+ 把概念放进笔记」开始。</div>'; return; }
+  conceptNotes.forEach(n=>{
+    const div=document.createElement('div'); div.className='learncard';
+    div.innerHTML=`<div class="learnhead"><h3>${esc(n.concept)}</h3><span class="learnstatus">${esc(statusLabel(n.status))}</span></div>
+      <div class="learnmeta">${esc(n.source||'')} · ${esc(n.updated_at||n.created_at||'')}</div>
+      <div class="learnflow"><span class="learnstep">存笔记</span><span class="learnstep">OpenMAIC 学习</span><span class="learnstep">补充理解</span><span class="learnstep">毕业到对战</span></div>
+      <div class="promptbox"><label>OpenMAIC 学习提示词</label><textarea id="cn_prompt_${n.id}" readonly>${esc(n.openmaic_prompt||'')}</textarea></div>
+      <div class="nodeactions">
+        <button class="primary" onclick="copyConceptPrompt(${n.id})">复制提示词</button>
+        <button onclick="openConceptLearning(${n.id})">打开 OpenMAIC</button>
+        <button onclick="updateConceptStatus(${n.id},'learning')">标记学习中</button>
+        <button onclick="updateConceptStatus(${n.id},'learned')">标记已学会</button>
+        <button onclick="graduateConcept(${n.id})">生成对战卡</button>
+      </div>
+      <div class="learncols">
+        <div><label>关键点</label><textarea onblur="saveConceptField(${n.id},'key_points',this.value)">${esc(n.key_points||'')}</textarea></div>
+        <div><label>例子</label><textarea onblur="saveConceptField(${n.id},'examples',this.value)">${esc(n.examples||'')}</textarea></div>
+        <div><label>常见误区</label><textarea onblur="saveConceptField(${n.id},'misconceptions',this.value)">${esc(n.misconceptions||'')}</textarea></div>
+        <div><label>应用场景</label><textarea onblur="saveConceptField(${n.id},'applications',this.value)">${esc(n.applications||'')}</textarea></div>
+      </div>`;
+    box.append(div);
+  });
+}
+async function copyText(text){
+  try{ await navigator.clipboard.writeText(text); toast('已复制'); }
+  catch(e){ prompt('复制这段文本:', text); }
+}
+function copyConceptPrompt(id){
+  const n=conceptNotes.find(x=>x.id===id);
+  if(n) copyText(n.openmaic_prompt||'');
+}
+async function openConceptLearning(id){
+  await updateConceptStatus(id,'learning',false);
+  await openOpenMaic();
+  const n=conceptNotes.find(x=>x.id===id);
+  if(n) copyText(n.openmaic_prompt||'');
+}
+async function saveConceptField(id,field,value){
+  const n=conceptNotes.find(x=>x.id===id);
+  if(n && (n[field]||'')===value) return;
+  await fetch(NAPI+'/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({[field]:value})});
+  toast('已保存概念笔记');
+  await loadAll();
+}
+async function updateConceptStatus(id,status,reload=true){
+  await fetch(NAPI+'/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
+  if(reload){ toast('状态已更新'); await loadAll(); }
+}
+async function graduateConcept(id){
+  const n=conceptNotes.find(x=>x.id===id);
+  if(!n) return;
+  if(!confirm(`确认把「${n.concept}」生成知识对战卡?\\n建议先填好关键点/例子/误区/应用场景。`)) return;
+  const res=await fetch(NAPI+'/'+id+'/graduate',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+  const data=await res.json();
+  if(!res.ok){ toast(data.error||'生成失败,先补充学习内容'); return; }
+  toast(`已生成 ${data.created_card_ids.length} 张对战卡`);
+  await loadAll();
+  switchTab('cards');
+}
+
+/* ---------- 时间工具 ---------- */
+function D(ts){ return ts?new Date(ts.replace(' ','T')):null; }
+function hhmm(ts){ const d=D(ts); return d?String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'):''; }
+function dayStr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function delta(a,b){ // b 晚于 a
+  if(!a||!b) return '';
+  let m=Math.round((D(b)-D(a))/60000);
+  if(m<1) return '刚刚';
+  if(m<60) return m+'分';
+  return Math.floor(m/60)+'时'+(m%60?String(m%60)+'分':'');
+}
+
+/* ---------- 项目板 ---------- */
+function makeSelect(p,field,opts,bg,rerender){
+  const s=document.createElement('select');
+  opts.forEach(o=>s.add(new Option(o,o,false,p[field]===o)));
+  s.style.background=bg[p[field]]||'#ededec';
+  s.onchange=()=>{p[field]=s.value;s.style.background=bg[s.value]||'#ededec';save(p.id,field,s.value);if(rerender)renderBoard();};
+  return s;
+}
+function makeVal(p,field,cls){
+  const d=document.createElement('div');
+  d.className='val'+(cls?' '+cls:''); d.contentEditable=true; d.textContent=p[field]||''; d.dataset.ph='…';
+  d.onblur=()=>{const v=d.textContent.trim(); if(v!==(p[field]||'')){p[field]=v;save(p.id,field,v);}};
+  return d;
+}
+function renderBoard(){
+  const onlyMine=document.getElementById('mine').checked;
+  const q=(document.getElementById('boardSearch')?.value||boardQuery||'').trim().toLowerCase();
+  const st=document.getElementById('boardStatus')?.value||boardStatus||'全部';
+  const b=document.getElementById('board'); b.innerHTML='';
+  const list=projects.filter(p=>{
+    if(onlyMine && !(p.ball||'').startsWith('🔴')) return false;
+    if(st!=='全部' && !String(p.status||'').includes(st)) return false;
+    if(q){
+      const hay=[p.name,p.what,p.just_done,p.doing_next,p.blocker,p.path,p.category].join(' ').toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  list.filter(p=>p.category!=='生活').forEach(p=>b.appendChild(card(p)));
+  const life=list.filter(p=>p.category==='生活');
+  if(life.length){
+    const h=document.createElement('div'); h.className='arttype'; h.style.gridColumn='1/-1';
+    h.textContent='🐱 生活(每天必花的时间 · 顺便变现)';
+    b.appendChild(h);
+    life.forEach(p=>b.appendChild(card(p)));
+  }
+}
+function card(p){
+  const myCommits=commits.filter(c=>c.project_id===p.id); // 已按 ts desc
+  const c=document.createElement('div'); c.className='card';
+
+  const t=document.createElement('div'); t.className='ctitle';
+  const em=document.createElement('div'); em.className='emoji'; em.contentEditable=true; em.textContent=p.emoji||'📁';
+  em.onblur=()=>{const v=em.textContent.trim(); if(v!==p.emoji){p.emoji=v;save(p.id,'emoji',v);}};
+  const nm=document.createElement('div'); nm.className='name'; nm.contentEditable=true; nm.textContent=p.name||'';
+  nm.onblur=()=>{const v=nm.textContent.trim(); if(v!==p.name){p.name=v;save(p.id,'name',v);}};
+  const dl=document.createElement('button'); dl.className='del'; dl.textContent='×'; dl.title='删除';
+  dl.onclick=()=>delProject(p.id,p.name);
+  t.append(em,nm,dl); c.append(t);
+
+  const pl=document.createElement('div'); pl.className='pills';
+  pl.append(makeSelect(p,'status',STATUS,STATUS_BG),makeSelect(p,'ball',BALL,BALL_BG),makeSelect(p,'category',CATS,CAT_BG,true)); c.append(pl);
+
+  FIELDS.forEach(([f,label])=>{
+    const w=document.createElement('div'); w.className='field';
+    const l=document.createElement('div'); l.className='label'; l.textContent=label;
+    if(f==='just_done'){ const h=document.createElement('span'); h.style.cssText='font-size:10px;color:#1a7f37;font-weight:400;margin-left:6px'; h.textContent='✍️ 改这里自动记一条时间线'; l.append(h); }
+    w.append(l,makeVal(p,f,f==='path'?'path':null)); c.append(w);
+  });
+
+  const foot=document.createElement('div'); foot.className='cardfoot';
+  const lm=document.createElement('span'); lm.className='lastm'; lm.textContent='最近提交:'+(p.lastmove||'—');
+  const bSub=document.createElement('button'); bSub.className='primary'; bSub.textContent='✓ 提交进展';
+  const bHis=document.createElement('button'); bHis.className='ghost'; bHis.textContent='🕐 历史('+myCommits.length+')';
+  foot.append(lm,bSub,bHis); c.append(foot);
+
+  // 提交面板
+  const panel=document.createElement('div'); panel.className='panel'; c.append(panel);
+  bSub.onclick=()=>{ panel.classList.toggle('open'); if(panel.classList.contains('open')) buildSubmit(panel,p); };
+
+  // 时间线面板
+  const tl=document.createElement('div'); tl.className='tl'; c.append(tl);
+  bHis.onclick=()=>{ tl.classList.toggle('open'); if(tl.classList.contains('open')) buildCardTL(tl,p,myCommits); };
+  return c;
+}
+function buildSubmit(panel,p){
+  panel.innerHTML='';
+  const pv=document.createElement('div'); pv.className='preview';
+  pv.innerHTML='本次提交快照:<br>✅ 刚完成「<b>'+(p.just_done||'—')+'</b>」<br>🔜 进行/期待「<b>'+(p.doing_next||'—')+'</b>」<br><span style="color:#9b9a97">(改上面字段后再提交,这里同步)</span>';
+  const note=document.createElement('textarea'); note.placeholder='备注(可选):这一步花了多久、卡在哪、心得…'; note.rows=2;
+  panel.append(pv,note);
+
+  const at=document.createElement('label'); at.className='arttoggle';
+  const cb=document.createElement('input'); cb.type='checkbox';
+  at.append(cb,document.createTextNode(' 📎 顺带提交「上一步成果」(可选)')); panel.append(at);
+  const box=document.createElement('div'); box.className='artbox';
+  const r2=document.createElement('div'); r2.className='row2';
+  const tySel=document.createElement('select'); tySel.className='psel'; ATYPES.forEach(o=>tySel.add(new Option(o,o)));
+  const maSel=document.createElement('select'); maSel.className='psel'; MATS.forEach(o=>maSel.add(new Option(o,o)));
+  r2.append(tySel,maSel);
+  const ti=document.createElement('input'); ti.className='tin'; ti.placeholder='成果标题(如:确定两种 SOP 流程)';
+  const pa=document.createElement('input'); pa.className='tin'; pa.placeholder='路径/链接(可选,如 SOP工厂/xxx.md)';
+  box.append(r2,ti,pa); panel.append(box);
+  cb.onchange=()=>box.classList.toggle('open',cb.checked);
+
+  const btns=document.createElement('div'); btns.className='pbtns';
+  const ok=document.createElement('button'); ok.className='primary'; ok.textContent='确认提交';
+  const cancel=document.createElement('button'); cancel.className='ghost'; cancel.textContent='取消';
+  cancel.onclick=()=>panel.classList.remove('open');
+  ok.onclick=async()=>{
+    const body={project_id:p.id,just_done:p.just_done||'',doing_next:p.doing_next||'',note:note.value.trim()};
+    if(cb.checked && (ti.value.trim()||pa.value.trim()))
+      body.artifact={type:tySel.value,maturity:maSel.value,title:ti.value.trim(),path:pa.value.trim()};
+    await fetch(CAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    toast('✓ 已提交,记好时间了'); await loadAll();
+  };
+  btns.append(ok,cancel); panel.append(btns);
+}
+function artBadgesFor(cid){
+  return artifacts.filter(a=>a.commit_id===cid).map(a=>
+    '<span class="badge" style="background:'+(MAT_BG[a.maturity]||'#ededec')+'">📎'+a.type+(a.maturity?'·'+a.maturity:'')+(a.title?' '+a.title:'')+'</span>').join('');
+}
+function buildCardTL(tl,p,myCommits){
+  tl.innerHTML='';
+  if(!myCommits.length){ tl.innerHTML='<div style="color:#9b9a97;font-size:13px;padding:8px 0">还没提交过。点「✓ 提交进展」开始记录。</div>'; return; }
+  const asc=[...myCommits].reverse(); // 旧→新,算间隔
+  asc.forEach((c,i)=>{
+    const row=document.createElement('div'); row.className='tlrow';
+    const gap=i>0?delta(asc[i-1].ts,c.ts):'';
+    row.innerHTML='<span class="tltime">'+hhmm(c.ts)+'</span>'+
+      (gap?'<span class="tldelta">+'+gap+'</span>':'<span class="tldelta">起点</span>')+
+      '<span class="tlbody">✅ '+(c.just_done||'—')+' 🔜 '+(c.doing_next||'—')+
+      (c.note?'<br><span style="color:#9b9a97">📝 '+c.note+'</span>':'')+artBadgesFor(c.id)+'</span>';
+    tl.append(row);
+  });
+}
+
+/* ---------- 今日时间线(竖·详情 / 横·总览)---------- */
+function shiftDay(d){ const dt=D(viewDate+' 00:00:00'); dt.setDate(dt.getDate()+d); viewDate=dayStr(dt); renderTimeline(); }
+function gotoToday(){ viewDate=dayStr(new Date()); renderTimeline(); }
+function setMode(m){ timelineMode=m;
+  document.getElementById('mV').classList.toggle('on',m==='vertical');
+  document.getElementById('mH').classList.toggle('on',m==='horizontal');
+  renderTimeline(); }
+function dayCommits(){ return commits.filter(c=>(c.ts||'').slice(0,10)===viewDate); }
+function renderTimeline(){
+  const today=dayStr(new Date()), wk=['日','一','二','三','四','五','六'][D(viewDate+' 00:00:00').getDay()];
+  document.getElementById('tldate').textContent=viewDate+' 周'+wk+(viewDate===today?' · 今天':'');
+  document.getElementById('swimdetail').innerHTML='';
+  document.getElementById('tllegend').textContent = timelineMode==='vertical'
+    ? '左轴=全天24h · 一列一个项目 · 卡片落在它的提交时刻 · 项目多了左右滑 · 列名绿=当天动过'
+    : '横轴=全天24h · 一行一个项目 · 圆点=一次提交(点开看详情)· 行名变绿=当天动过';
+  if(timelineMode==='vertical') renderVertical(); else renderSwimlane();
+}
+function renderVertical(){
+  const day=dayCommits(), canvas=document.getElementById('tlcanvas'); canvas.innerHTML='';
+  const HPX=50, gridH=24*HPX, today=dayStr(new Date()), now=new Date();
+  const grid=document.createElement('div'); grid.className='vgrid';
+  const inner=document.createElement('div'); inner.className='vinner';
+
+  // ① 表头行(粘顶 · 向下滑不消失)
+  const headrow=document.createElement('div'); headrow.className='vheadrow';
+  const corner=document.createElement('div'); corner.className='vcorner'; corner.textContent='时刻'; headrow.append(corner);
+  projects.forEach(p=>{
+    const cs=day.filter(c=>c.project_id===p.id);
+    const h=document.createElement('div'); h.className='vhead2'+(cs.length?' active':'');
+    h.innerHTML=(p.emoji||'📁')+' '+p.name+(cs.length?' <span class="dot-n">'+cs.length+'</span>':'');
+    headrow.append(h);
+  });
+  inner.append(headrow);
+
+  // ①.5 预期行:每个项目进行中的预期(粘在表头下方,长期悬浮)
+  const planrow=document.createElement('div'); planrow.className='vplanrow';
+  const pcorner=document.createElement('div'); pcorner.className='vplancorner'; pcorner.textContent='🎯'; planrow.append(pcorner);
+  projects.forEach(p=>{
+    const cell=document.createElement('div'); cell.className='vplancell';
+    const mp=plans.filter(pl=>pl.project_id===p.id && pl.status!=='已完成');
+    cell.innerHTML = mp.length ? mp.map(pl=>
+      `🎯 ${(pl.content||'').replace(/</g,'&lt;')} <span class="vplanday">·已${dDays(pl.created_at,dayStr(new Date()))}天</span>`).join('<br>')
+      : '<span style="color:#c4c4c2">—</span>';
+    planrow.append(cell);
+  });
+  inner.append(planrow);
+
+  // ② 体行:左 24h 轴(粘左)+ 每项目一列
+  const bodyrow=document.createElement('div'); bodyrow.className='vbodyrow';
+  const axis=document.createElement('div'); axis.className='vaxis'; axis.style.height=gridH+'px';
+  for(let hh=0;hh<=24;hh++){ const l=document.createElement('div'); l.className='vhr'; l.style.top=(hh*HPX)+'px'; l.textContent=String(hh).padStart(2,'0')+':00'; axis.append(l); }
+  bodyrow.append(axis);
+  let earliest=null;
+  projects.forEach(p=>{
+    const cs=day.filter(c=>c.project_id===p.id).sort((a,b)=>D(a.ts)-D(b.ts));
+    const track=document.createElement('div'); track.className='vtrack2'; track.style.height=gridH+'px';
+    if(viewDate===today){ const nl=document.createElement('div'); nl.className='vnow2'; nl.style.top=((now.getHours()*60+now.getMinutes())/60*HPX)+'px'; track.append(nl); }
+    cs.forEach((c,i)=>{
+      const d=D(c.ts), mins=d.getHours()*60+d.getMinutes();
+      if(earliest===null||mins<earliest) earliest=mins;
+      const gap=i>0?delta(cs[i-1].ts,c.ts):'';
+      const card=document.createElement('div'); card.className='vcard'; card.style.top=(mins/60*HPX)+'px';
+      card.innerHTML='<div class="vcardt">🕐 '+hhmm(c.ts)+(gap?' <span class="vcardg">距上次 '+gap+'</span>':'')+'</div>'+
+        '<div class="vcardb">✅ '+(c.just_done||'—')+'<br>🔜 '+(c.doing_next||'—')+
+        (c.note?'<br><span style="color:#9b9a97">📝 '+c.note+'</span>':'')+artBadgesFor(c.id)+'</div>';
+      track.append(card);
+    });
+    bodyrow.append(track);
+  });
+  inner.append(bodyrow);
+  grid.append(inner); canvas.append(grid);
+  grid.scrollTop=(earliest!==null?Math.max(earliest-60,0):8*60)/60*HPX;  // 默认滚到最早活动/早8点
+}
+function renderSwimlane(){
+  const today=dayStr(new Date()), day=dayCommits(), canvas=document.getElementById('tlcanvas'); canvas.innerHTML='';
+  const swim=document.createElement('div'); swim.id='swim'; canvas.append(swim);
+  const head=document.createElement('div'); head.className='swrow swhead';
+  let ticks=''; for(let h=0;h<=24;h+=2) ticks+='<span class="swtick" style="left:'+(h/24*100)+'%">'+String(h).padStart(2,'0')+'</span>';
+  head.innerHTML='<div class="swlabel" style="border-right-color:transparent"></div><div class="swtrack">'+ticks+'</div>';
+  swim.append(head);
+  const now=new Date(), nowPct=(now.getHours()*60+now.getMinutes())/1440*100;
+  projects.forEach(p=>{
+    const cs=day.filter(c=>c.project_id===p.id).sort((a,b)=>D(a.ts)-D(b.ts));
+    const row=document.createElement('div'); row.className='swrow';
+    const label=document.createElement('div'); label.className='swlabel'+(cs.length?' active':'');
+    label.innerHTML=(p.emoji||'📁')+' '+p.name+(cs.length?' <span class="dot-n">'+cs.length+'</span>':'');
+    const track=document.createElement('div'); track.className='swtrack';
+    if(viewDate===today){ const nl=document.createElement('div'); nl.className='nowline'; nl.style.left=nowPct+'%'; nl.title='现在'; track.append(nl); }
+    cs.forEach(c=>{ const d=D(c.ts), pct=(d.getHours()*60+d.getMinutes())/1440*100;
+      const dot=document.createElement('div'); dot.className='swdot'; dot.style.left=pct+'%';
+      dot.title=hhmm(c.ts)+'  ✅'+(c.just_done||'')+' 🔜'+(c.doing_next||''); dot.onclick=()=>showDetail(p,c,cs); track.append(dot); });
+    row.append(label,track); swim.append(row);
+  });
+}
+function showDetail(p,c,cs){
+  const i=cs.findIndex(x=>x.id===c.id), gap=i>0?delta(cs[i-1].ts,c.ts):'';
+  document.getElementById('swimdetail').innerHTML=
+    '<div class="detbox"><b>'+(p.emoji||'')+' '+p.name+'</b> · <span style="color:#2f6feb;font-weight:600">'+hhmm(c.ts)+'</span>'+
+    (gap?' <span style="color:#9b9a97">(距上次 '+gap+')</span>':' <span style="color:#9b9a97">(当天首次)</span>')+
+    '<div style="margin-top:8px">✅ 刚完成:'+(c.just_done||'—')+'<br>🔜 进行/期待:'+(c.doing_next||'—')+
+    (c.note?'<br>📝 '+c.note:'')+artBadgesFor(c.id)+'</div></div>';
+}
+
+/* ---------- 成果库 ---------- */
+function renderArts(){
+  const bar=document.getElementById('matbar'); bar.innerHTML='';
+  ['全部',...MATS].forEach(m=>{
+    const chip=document.createElement('div'); chip.className='mchip'+(matFilter===m?' on':''); chip.textContent=m;
+    chip.onclick=()=>{matFilter=m;renderArts();}; bar.append(chip);
+  });
+  const box=document.getElementById('arts'); box.innerHTML='';
+  let list=artifacts.filter(a=>matFilter==='全部'||a.maturity===matFilter);
+  if(!list.length){ box.innerHTML='<div class="empty" style="grid-column:1/-1">还没有成果。<br>提交进展时勾「📎 顺带提交上一步成果」就会进这里。</div>'; return; }
+  const pmap={}; projects.forEach(p=>pmap[p.id]=p);
+  const byType={}; list.forEach(a=>{(byType[a.type||'其他']=byType[a.type||'其他']||[]).push(a);});
+  Object.keys(byType).forEach(ty=>{
+    const h=document.createElement('div'); h.className='arttype'; h.style.gridColumn='1/-1'; h.textContent='▌ '+ty+'('+byType[ty].length+')'; box.append(h);
+    byType[ty].forEach(a=>{
+      const p=pmap[a.project_id]||{emoji:'',name:''};
+      const ac=document.createElement('div'); ac.className='acard';
+      ac.innerHTML='<button class="del" style="opacity:1;position:absolute;top:8px;right:8px" title="删除">×</button>'+
+        '<h4>'+(a.title||'(无题)')+'</h4>'+
+        '<span class="badge" style="background:'+(MAT_BG[a.maturity]||'#ededec')+'">'+(a.maturity||'—')+'</span>'+
+        '<div class="ameta">项目:'+p.emoji+' '+p.name+'<br>时间:'+(a.created_at||'')+
+        (a.path?'<br><span class="apath">'+a.path+'</span>':'')+'</div>';
+      ac.querySelector('.del').onclick=async()=>{ if(confirm('删除成果「'+(a.title||'')+'」?')){await fetch(AAPI+'/'+a.id,{method:'DELETE'});await loadAll();} };
+      box.append(ac);
+    });
+  });
+}
+
+/* ---------- 任务甘特 ---------- */
+function pD(s){ return s?new Date(s+'T00:00:00'):null; }
+function diffD(a,b){ return Math.round((b-a)/86400000); }
+function addD(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function mdfmt(d){ return (d.getMonth()+1)+'/'+d.getDate(); }
+async function addTask(){
+  await fetch(TAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({title:'新任务',status:'待办',goal:'G1赚钱',owner:'你',
+      project_id:(projects[0]&&projects[0].id)||null,
+      start_date:dayStr(new Date()),due_date:dayStr(addD(new Date(),3)),progress:0})});
+  await loadAll();
+}
+function renderGantt(){
+  const canvas=document.getElementById('gantt'); canvas.innerHTML='';
+  document.getElementById('unsched').innerHTML=''; document.getElementById('taskedit').innerHTML='';
+  const today=new Date(); today.setHours(0,0,0,0);
+  const sched=tasks.filter(t=>t.start_date&&t.due_date);
+  const unsched=tasks.filter(t=>!t.start_date||!t.due_date);
+  let ds=[+today]; sched.forEach(t=>{ds.push(+pD(t.start_date),+pD(t.due_date));});
+  let winS=addD(new Date(Math.min(...ds)),-2), winE=addD(new Date(Math.max(...ds)),3);
+  let total=diffD(winS,winE)+1; if(total<14){ winE=addD(winE,14-total); total=14; }
+
+  const head=document.createElement('div'); head.className='grow ghead';
+  let ax='<div class="glabel"></div><div class="gtrack">';
+  const step=total<=18?2:(total<=34?4:7);
+  for(let i=0;i<=total;i+=step) ax+='<span class="gtick" style="left:'+(i/total*100)+'%">'+mdfmt(addD(winS,i))+'</span>';
+  ax+='</div>'; head.innerHTML=ax; canvas.append(head);
+
+  const pmap={}; projects.forEach(p=>pmap[p.id]=p);
+  const byProj={}; sched.forEach(t=>{(byProj[t.project_id]=byProj[t.project_id]||[]).push(t);});
+  if(!sched.length){ const e=document.createElement('div'); e.className='empty'; e.textContent='还没有排期任务。点「+ 任务」添加。'; canvas.append(e); }
+  Object.keys(byProj).forEach(k=>{
+    const p=pmap[k]||{emoji:'📁',name:'(无项目)'};
+    const gh=document.createElement('div'); gh.className='gproj'; gh.textContent=(p.emoji||'')+' '+p.name; canvas.append(gh);
+    byProj[k].sort((a,b)=>pD(a.start_date)-pD(b.start_date)).forEach(t=>canvas.append(taskRow(t,winS,total,today)));
+  });
+  const u=document.getElementById('unsched');
+  if(unsched.length){
+    const h=document.createElement('div'); h.className='gproj'; h.textContent='⚠️ 未排期(缺起止日 · 点开补)'; u.append(h);
+    unsched.forEach(t=>{ const p=pmap[t.project_id]||{}; const r=document.createElement('div'); r.className='urow';
+      r.textContent=(p.emoji||'')+' '+(t.title||'(无题)'); r.onclick=()=>editTask(t); u.append(r); });
+  }
+}
+function taskRow(t,winS,total,today){
+  const s=pD(t.start_date), e=pD(t.due_date);
+  const left=diffD(winS,s)/total*100, width=Math.max((diffD(s,e)+1)/total*100,1.5);
+  const overdue=e<today && t.status!=='完成';
+  const row=document.createElement('div'); row.className='grow';
+  const label=document.createElement('div'); label.className='glabel';
+  label.innerHTML='<span class="gdot" style="background:'+(GOAL_COLOR[t.goal]||'#ccc')+'" title="'+(t.goal||'')+'"></span>'+(t.title||'(无题)');
+  const track=document.createElement('div'); track.className='gtrack';
+  const nl=document.createElement('div'); nl.className='gnow'; nl.style.left=(diffD(winS,today)/total*100)+'%'; nl.title='今天'; track.append(nl);
+  const bar=document.createElement('div'); bar.className='gbar'+(overdue?' overdue':'');
+  bar.style.left=left+'%'; bar.style.width=width+'%'; bar.style.background=TSTAT_COLOR[t.status]||'#b9b9b6';
+  const fill=document.createElement('div'); fill.className='gfill'; fill.style.width=(t.progress||0)+'%'; bar.append(fill);
+  const lab=document.createElement('span'); lab.className='gbarlab'; lab.textContent=(t.progress||0)+'%'+(overdue?' ⚠':''); bar.append(lab);
+  bar.title=(t.title||'')+' · '+t.start_date+'→'+t.due_date+' · '+t.status+' · '+(t.progress||0)+'%'+(overdue?' · 逾期!':'');
+  bar.onclick=()=>editTask(t);
+  track.append(bar); row.append(label,track); return row;
+}
+function editTask(t){
+  const box=document.getElementById('taskedit');
+  const opt=(arr,v)=>arr.map(o=>`<option${o===v?' selected':''}>${o}</option>`).join('');
+  const popt=projects.map(p=>`<option value="${p.id}"${String(p.id)===String(t.project_id)?' selected':''}>${(p.emoji||'')}${p.name}</option>`).join('');
+  box.innerHTML=`<div class="detbox">
+    <div style="display:flex;gap:8px;align-items:center"><b style="flex:1">✏️ 编辑任务</b>
+      <button class="ghost" onclick="delTask(${t.id})">删除</button></div>
+    <div class="trow"><label>标题</label><input class="tin" id="te_title" value="${(t.title||'').replace(/"/g,'&quot;')}"></div>
+    <div class="trow2"><span><label>项目</label><select id="te_project_id">${popt}</select></span>
+      <span><label>状态</label><select id="te_status">${opt(TSTATUS,t.status)}</select></span></div>
+    <div class="trow2"><span><label>目标</label><select id="te_goal">${opt(GOALS,t.goal)}</select></span>
+      <span><label>负责人</label><input class="tin" id="te_owner" value="${t.owner||'你'}"></span></div>
+    <div class="trow2"><span><label>开始</label><input class="tin" type="date" id="te_start_date" value="${t.start_date||''}"></span>
+      <span><label>目标完成</label><input class="tin" type="date" id="te_due_date" value="${t.due_date||''}"></span></div>
+    <div class="trow"><label id="te_plab">进展 ${t.progress||0}%</label>
+      <input type="range" min="0" max="100" id="te_progress" value="${t.progress||0}"
+        oninput="document.getElementById('te_plab').textContent='进展 '+this.value+'%'"></div>
+    <div class="pbtns"><button class="primary" onclick="saveTask(${t.id})">保存</button>
+      <button class="ghost" onclick="document.getElementById('taskedit').innerHTML=''">关闭</button></div></div>`;
+  box.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+async function saveTask(id){
+  const g=f=>document.getElementById('te_'+f);
+  const body={title:g('title').value,project_id:+g('project_id').value,status:g('status').value,goal:g('goal').value,
+    owner:g('owner').value,start_date:g('start_date').value,due_date:g('due_date').value,progress:+g('progress').value};
+  await fetch(TAPI+'/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  toast('已保存'); await loadAll();
+}
+async function delTask(id){ if(!confirm('删除这个任务?'))return; await fetch(TAPI+'/'+id,{method:'DELETE'}); await loadAll(); }
+
+/* ---------- 计划·预期 ---------- */
+function dDays(a,b){ return diffD(pD(a),pD(b)); }  // 天数差(YYYY-MM-DD)
+function togglePlanForm(){
+  const f=document.getElementById('planform');
+  if(f.innerHTML){ f.innerHTML=''; return; }
+  const popt=projects.map(p=>`<option value="${p.id}">${(p.emoji||'')}${p.name}</option>`).join('');
+  f.innerHTML=`<div class="detbox">
+    <div class="trow"><label>预期 / 明天要开什么(也可写"几天后想完成什么")</label>
+      <textarea id="pl_content" rows="2" placeholder="例:OPC 比赛 — 把 P02-P06 也实测了"></textarea></div>
+    <div class="trow2">
+      <span><label>关联项目(可选)</label><select id="pl_project" class="tin"><option value="">— 不关联 —</option>${popt}</select></span>
+      <span><label>我预估几天完成?(可选)</label><input class="tin" type="number" id="pl_expect" min="1" placeholder="如 3"></span>
+    </div>
+    <div class="pbtns"><button class="primary" onclick="addPlan()">写下,开始计时</button>
+      <button class="ghost" onclick="togglePlanForm()">取消</button></div></div>`;
+  document.getElementById('pl_content').focus();
+}
+async function addPlan(){
+  const content=document.getElementById('pl_content').value.trim();
+  if(!content){ toast('写点内容再保存'); return; }
+  const pj=document.getElementById('pl_project').value;
+  const ex=document.getElementById('pl_expect').value;
+  await fetch(LAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({content, project_id:pj?+pj:null, expect_days:ex?+ex:null, status:'进行中'})});
+  document.getElementById('planform').innerHTML='';
+  toast('✓ 预期已写下,开始计时'); await loadAll();
+}
+function renderPlans(){
+  const pmap={}; projects.forEach(p=>pmap[p.id]=p);
+  const today=dayStr(new Date());
+  const inProg=plans.filter(p=>p.status!=='已完成');
+  const done=plans.filter(p=>p.status==='已完成');
+  const doneDays=done.map(p=>dDays(p.created_at,p.done_at));
+  const avg=doneDays.length?(doneDays.reduce((a,b)=>a+b,0)/doneDays.length).toFixed(1):'—';
+  const withEst=done.filter(p=>p.expect_days);
+  let estTxt='';
+  if(withEst.length){
+    const diffs=withEst.map(p=>dDays(p.created_at,p.done_at)-p.expect_days);
+    const ad=diffs.reduce((a,b)=>a+b,0)/diffs.length;
+    estTxt=` · 平均比你预估${ad>0.05?'慢':(ad<-0.05?'快':'准,差')} ${Math.abs(ad).toFixed(1)} 天`;
+  }
+  document.getElementById('planstat').textContent=
+    `进行中 ${inProg.length} 条 · 已完成 ${done.length} 条,平均用 ${avg} 天${estTxt}`;
+
+  const box=document.getElementById('plans'); box.innerHTML='';
+  if(!plans.length){ box.innerHTML='<div class="empty">还没写过预期。<br>点「+ 写预期」,睡前写下明天要开的项目和预期 —— 之后你点「完成」,系统帮你统计实际花了几天,长期照出你的真实速度。</div>'; return; }
+  if(inProg.length){ const h=document.createElement('div'); h.className='arttype'; h.textContent='▌ 进行中('+inProg.length+')'; box.append(h); }
+  inProg.forEach(p=>box.append(planCard(p,pmap,today)));
+  if(done.length){ const h=document.createElement('div'); h.className='arttype'; h.textContent='▌ 已完成('+done.length+')'; box.append(h); }
+  done.forEach(p=>box.append(planCard(p,pmap,today)));
+}
+function planCard(p,pmap,today){
+  const proj=pmap[p.project_id], done=p.status==='已完成';
+  let daysHtml;
+  if(done){
+    const d=dDays(p.created_at,p.done_at), est=p.expect_days;
+    let cmp='';
+    if(est){ const df=d-est;
+      cmp = df>0 ? `<span style="color:#eb5757">(预估 ${est} 天,慢了 ${df} 天)</span>`
+          : df<0 ? `<span style="color:#1a7f37">(预估 ${est} 天,快了 ${-df} 天)</span>`
+          :        `<span style="color:#1a7f37">(正好预估 ${est} 天 🎯)</span>`; }
+    daysHtml=`<span style="color:#1a7f37;font-weight:700">✅ 用了 ${d} 天</span> ${cmp}`;
+  }else{
+    const d=dDays(p.created_at,today), est=p.expect_days;
+    const warn = (est&&d>est) ? `<span style="color:#eb5757">(已超预估 ${est} 天)</span>`
+               : (est ? `<span style="color:#9b9a97">(预估 ${est} 天)</span>` : '');
+    daysHtml=`<span style="color:#2f6feb;font-weight:700">⏳ 已 ${d} 天</span> ${warn}`;
+  }
+  const div=document.createElement('div'); div.className='plancard';
+  div.innerHTML=`<div class="pc-content">${(p.content||'').replace(/</g,'&lt;')}</div>
+    <div class="pc-meta">${proj?((proj.emoji||'')+' '+proj.name+' · '):''}写于 ${p.created_at} · ${daysHtml}</div>`;
+  const btns=document.createElement('div'); btns.className='pc-btns';
+  if(!done){ const ok=document.createElement('button'); ok.className='primary'; ok.textContent='✓ 完成'; ok.onclick=()=>setPlanDone(p.id,true); btns.append(ok); }
+  else{ const un=document.createElement('button'); un.className='ghost'; un.textContent='↩ 撤销完成'; un.onclick=()=>setPlanDone(p.id,false); btns.append(un); }
+  const del=document.createElement('button'); del.className='ghost'; del.textContent='删除'; del.onclick=()=>delPlan(p.id); btns.append(del);
+  div.append(btns); return div;
+}
+async function setPlanDone(id,done){
+  await fetch(LAPI+'/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:done?'已完成':'进行中'})});
+  toast(done?'✓ 完成!已记录实际天数':'已撤销,继续计时'); await loadAll();
+}
+async function delPlan(id){ if(!confirm('删除这条预期?'))return; await fetch(LAPI+'/'+id,{method:'DELETE'}); await loadAll(); }
+
+/* ---------- 知识对战 ---------- */
+let battleQ=[], battleI=0, battleScore={c:0,w:0}, battleMode='classic', battleSession=null, activeQuestionIdByCard={};
+function renderCards(){
+  const today=dayStr(new Date());
+  const due=cards.filter(c=>(c.next_due||'')<=today);
+  const openQ=questions.filter(q=>q.status==='open').length;
+  const seen=cards.reduce((s,c)=>s+(c.correct_count||0)+(c.wrong_count||0),0);
+  const corr=cards.reduce((s,c)=>s+(c.correct_count||0),0);
+  const acc=seen?Math.round(corr/seen*100):'—';
+  document.getElementById('cardstat').textContent=`共 ${cards.length} 张 · 今日到期 ${due.length} · 正确率 ${acc}% · 疑问 ${openQ}/${questions.length}`;
+  const bb=document.getElementById('battleBtn'); bb.textContent=`⚔️ 开始对战 (${due.length})`; bb.disabled=due.length===0;
+  const mb=document.getElementById('maicBattleBtn'); mb.textContent=`🧑‍🏫 MAIC 对战 (${due.length})`; mb.disabled=due.length===0;
+  document.getElementById('battlebox').innerHTML=''; document.getElementById('cardform').innerHTML='';
+  const box=document.getElementById('cardlist'); box.innerHTML='';
+  document.getElementById('questionlog').innerHTML='';
+  if(!cards.length){ box.innerHTML='<div class="empty">还没有卡片。点「+ 加卡」,或每晚复盘咱俩一起出。</div>'; return; }
+  cards.forEach(c=>{
+    const div=document.createElement('div'); div.className='kcard';
+    const dueTxt=(c.next_due||'')<=today?'<span style="color:#eb5757">今日到期</span>':'下次 '+c.next_due;
+    div.innerHTML=`${c.image?`<img src="${c.image}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">`:''}
+      <span style="font-size:20px;flex-shrink:0">${c.symbol||''}</span>
+      <div style="flex:1"><b>${(c.question||c.front||'').replace(/</g,'&lt;')}</b>
+      <div style="font-size:12px;color:#9b9a97;margin-top:3px">${c.source||''} · ${dueTxt} · ✅${c.correct_count||0} ❌${c.wrong_count||0}</div></div>`;
+    const del=document.createElement('button'); del.className='ghost'; del.textContent='×'; del.title='删除'; del.onclick=()=>delCard(c.id);
+    div.append(del); box.append(div);
+  });
+  renderQuestionLog();
+}
+function startBattle(){
+  const today=dayStr(new Date());
+  battleQ=cards.filter(c=>(c.next_due||'')<=today); battleI=0; battleScore={c:0,w:0};
+  battleMode='classic'; battleSession=null;
+  if(!battleQ.length) return;
+  document.getElementById('cardlist').innerHTML=''; document.getElementById('cardform').innerHTML='';
+  renderBattle();
+}
+async function startMaicBattle(){
+  const today=dayStr(new Date());
+  battleQ=cards.filter(c=>(c.next_due||'')<=today); battleI=0; battleScore={c:0,w:0};
+  battleMode='maic';
+  if(!battleQ.length) return;
+  document.getElementById('cardlist').innerHTML=''; document.getElementById('cardform').innerHTML='';
+  const res=await fetch(BAPI+'/sessions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    mode:'maic_review', source:'中枢知识对战', card_count:battleQ.length
+  })});
+  battleSession=await res.json();
+  renderBattle();
+}
+function renderBattle(){
+  const box=document.getElementById('battlebox');
+  if(battleI>=battleQ.length){
+    const t=battleScore.c+battleScore.w;
+    box.innerHTML=`<div class="battle"><h3 style="margin:0 0 8px">${battleMode==='maic'?'🧑‍🏫 MAIC 对战结束':'⚔️ 对战结束'}</h3>
+      <p>答对 <b style="color:#1a7f37">${battleScore.c}</b> · 答错 <b style="color:#eb5757">${battleScore.w}</b> · 正确率 ${Math.round(battleScore.c/(t||1)*100)}%</p>
+      <p style="font-size:13px;color:#9b9a97">答错的明天回炉,答对的按 SM-2 拉长间隔。${battleMode==='maic'?'本轮已写入 session / event / score。':''}</p>
+      <button class="primary" onclick="endBattle()">完成</button></div>`;
+    return;
+  }
+  const c=battleQ[battleI]; let opts=[]; try{opts=JSON.parse(c.options||'[]')}catch(e){}
+  box.innerHTML=`<div class="battle">
+    <div style="font-size:12px;color:#9b9a97">第 ${battleI+1}/${battleQ.length} 题 · ${c.source||''}
+      ${battleMode==='maic'?'<span class="maicmark">OpenMAIC-inspired · 多角色互动</span>':''}</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+      ${c.image?`<img src="${c.image}" style="width:44px;height:44px;border-radius:50%;object-fit:cover" onerror="this.style.display='none'">`:''}
+      <span style="font-size:28px">${c.symbol||''}</span></div>
+    <div class="bq">${esc(c.question||c.front||'')}</div>
+    <div id="bopts">${opts.map((o,i)=>`<button class="bopt" onclick="answerBattle(${i})">${String.fromCharCode(65+i)}. ${esc(o)}</button>`).join('')}</div>
+    <div id="bfb"></div></div>`;
+}
+async function answerBattle(i){
+  const c=battleQ[battleI], ok=(i===c.answer);
+  document.querySelectorAll('#bopts .bopt').forEach((b,idx)=>{ b.disabled=true;
+    if(idx===c.answer) b.classList.add('correct'); if(idx===i&&!ok) b.classList.add('wrong'); });
+  if(ok) battleScore.c++; else battleScore.w++;
+  if(battleMode==='maic'){
+    const res=await fetch(BAPI+'/answer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      session_id:battleSession?.id, card_id:c.id, selected_answer:i
+    })});
+    const data=await res.json();
+    document.getElementById('bfb').innerHTML=renderMaicFeedback(data.feedback, ok, c);
+  }else{
+    document.getElementById('bfb').innerHTML=`<div class="bfb">${ok?'✅ 答对!':'❌ 答错'}<br>💡 ${esc(c.back||'')}
+      ${c.quote?`<br><span style="font-style:italic;color:#2f6feb">"${esc(c.quote)}"</span>`:''}
+      <br><button class="primary" style="margin-top:10px" onclick="nextBattle()">下一张 →</button>
+      ${questionBox(c)}</div>`;
+    await fetch(KAPI+'/'+c.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({review:ok?'correct':'wrong'})});
+  }
+}
+function renderMaicFeedback(fb, ok, c){
+  const agents=(fb&&fb.agents)||[];
+  const s=(fb&&fb.scores)||{};
+  return `<div class="bfb">
+    <b>${ok?'✅ 答对':'❌ 答错'} · MAIC 多角色反馈</b>
+    <div class="maicgrid">${agents.map(a=>`<div class="agentturn">
+      <div class="agenttop"><span class="agentrole">${esc(a.name)}</span><span class="agentlabel">${esc(a.label)}</span></div>
+      <div>${esc(a.content)}</div>
+    </div>`).join('')}</div>
+    <div class="scoregrid">
+      <div class="scorepill"><b>${s.recall??0}</b><span>Recall</span></div>
+      <div class="scorepill"><b>${s.apply??0}</b><span>Apply</span></div>
+      <div class="scorepill"><b>${s.attack??0}</b><span>Attack</span></div>
+      <div class="scorepill"><b>${s.explain??0}</b><span>Explain</span></div>
+    </div>
+    <div class="battlehint">这一步对应 OpenMAIC 的多角色课堂: teacher 讲解、peer challenger 追问、judge 评分、memory coach 调度复习。</div>
+    <button class="primary" style="margin-top:10px" onclick="nextBattle()">下一张 →</button>
+    ${questionBox(c)}
+  </div>`;
+}
+function questionBox(c){
+  return `<div class="qbox" id="qbox-${c.id}">
+    <div class="qtop">这张卡还有疑问? <span class="qstate" id="qstate-${c.id}">提交后 10 分钟内可继续追问</span></div>
+    <div class="qthread" id="qthread-${c.id}"></div>
+    <textarea id="qinput-${c.id}" rows="2" placeholder="写下你卡住的点,比如: 为什么这个选项错? 怎么用到我的项目台?"></textarea>
+    <div class="qactions"><button class="primary" onclick="sendCardQuestion(${c.id})">提交疑问</button>
+    <button class="ghost" onclick="document.getElementById('qinput-${c.id}').value=''">清空</button></div>
+  </div>`;
+}
+function renderQuestionThread(cardId, history, status){
+  const box=document.getElementById('qthread-'+cardId);
+  if(!box) return;
+  box.innerHTML=(history||[]).map(m=>`<div class="qmsg ${m.role==='user'?'user':'assistant'}"><b>${m.role==='user'?'我':'回答节点'}：</b>${esc(m.content||'')}</div>`).join('');
+  const st=document.getElementById('qstate-'+cardId);
+  if(st) st.textContent=status==='closed'?'会话已关闭,再次提交会开启新会话':'已记录,10 分钟内可继续追问';
+}
+async function sendCardQuestion(cardId){
+  const input=document.getElementById('qinput-'+cardId);
+  const st=document.getElementById('qstate-'+cardId);
+  const question=(input?.value||'').trim();
+  if(!question){ toast('先写下你的疑问'); return; }
+  if(st) st.textContent='回答节点启动中...';
+  const res=await fetch(QAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    question_id:activeQuestionIdByCard[cardId]||0,
+    session_id:battleSession?.id||0,
+    card_id:cardId,
+    question
+  })});
+  const data=await res.json();
+  if(!res.ok){ if(st) st.textContent='提交失败'; toast(data.error||'提交失败'); return; }
+  activeQuestionIdByCard[cardId]=data.id;
+  input.value='';
+  renderQuestionThread(cardId, data.history||[], data.status);
+  questions=await fetch(QAPI).then(r=>r.json()).catch(()=>questions);
+}
+function renderQuestionLog(){
+  const box=document.getElementById('questionlog');
+  if(!box) return;
+  const rows=questions.slice(0,10);
+  if(!rows.length){ box.innerHTML=''; return; }
+  box.className='questionlog';
+  box.innerHTML=`<div class="arttype">疑问记录库</div>${rows.map(q=>{
+    const hist=(()=>{try{return JSON.parse(q.history||'[]')}catch(e){return []}})();
+    const last=hist[hist.length-1]||{};
+    return `<div class="questionitem ${q.status==='closed'?'closed':''}">
+      <b>${esc(q.question_text||'未命名疑问')}</b>
+      <div class="qmeta">${q.status==='open'?'进行中':'已关闭'} · 卡片: ${esc(q.card_question||('#'+q.card_id))} · 轮次 ${q.turn_count||0} · ${q.last_activity_at||''}</div>
+      <div class="qmeta">${esc((last.content||'').slice(0,120))}${(last.content||'').length>120?'...':''}</div>
+    </div>`;
+  }).join('')}`;
+}
+function nextBattle(){ battleI++; renderBattle(); }
+async function endBattle(){
+  localStorage.setItem('last_battle', Date.now());
+  if(battleMode==='maic'&&battleSession?.id){
+    await fetch(BAPI+'/end',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:battleSession.id})});
+  }
+  document.getElementById('battlebox').innerHTML='';
+  toast(battleMode==='maic'?'MAIC 对战完成,已写入中枢记录':'对战完成,已按 SM-2 排好下次复习');
+  battleMode='classic'; battleSession=null;
+  await loadAll();
+}
+function toggleCardForm(){
+  const f=document.getElementById('cardform');
+  if(f.innerHTML){ f.innerHTML=''; return; }
+  f.innerHTML=`<div class="detbox">
+    <div class="trow"><label>题干(问)</label><input class="tin" id="kc_q" placeholder="作为 OPC 老板,你必须知道…"></div>
+    <div class="trow"><label>4 个选项(每行一个)</label><textarea id="kc_opts" rows="4" placeholder="选项A&#10;选项B&#10;选项C&#10;选项D"></textarea></div>
+    <div class="trow2"><span><label>正确选项</label><select id="kc_ans" class="tin"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></span>
+      <span><label>来源</label><input class="tin" id="kc_src" placeholder="复盘/宫殿/必备"></span></div>
+    <div class="trow"><label>背面(答案+解释,可带 🖼️比喻 💥钩子)</label><textarea id="kc_back" rows="2"></textarea></div>
+    <div class="pbtns"><button class="primary" onclick="addCard()">加卡</button><button class="ghost" onclick="toggleCardForm()">取消</button></div></div>`;
+}
+async function addCard(){
+  const q=document.getElementById('kc_q').value.trim();
+  const opts=document.getElementById('kc_opts').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!q||opts.length<2){ toast('至少题干 + 2 个选项'); return; }
+  await fetch(KAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    question:q, front:q, options:opts, answer:+document.getElementById('kc_ans').value,
+    back:document.getElementById('kc_back').value.trim(), source:document.getElementById('kc_src').value.trim()})});
+  document.getElementById('cardform').innerHTML=''; toast('✓ 卡片已加'); await loadAll();
+}
+async function delCard(id){ if(!confirm('删除这张卡?'))return; await fetch(KAPI+'/'+id,{method:'DELETE'}); await loadAll(); }
+
+/* ---------- 每日复盘 ---------- */
+function renderReviews(){
+  const box=document.getElementById('reviews'); box.innerHTML='';
+  if(!reviews.length){
+    box.innerHTML='<div class="empty">还没有复盘记录。<br><br>复盘是咱俩一起做的:你跟我说「复盘」,我会扫一遍你今天动过的项目,把<b>你今天做的事</b> + <b>我建议你改进的几条</b>写成条目放这里。<br>你在每条上 ☑️ 勾你认同的、✍️ 写下你自己的想法,这些会一直留着。</div>';
+    document.getElementById('revstat').textContent=''; return;
+  }
+  const agreed=reviews.filter(r=>+r.checked).length;
+  document.getElementById('revstat').textContent=`共 ${reviews.length} 条 · 你认同 ${agreed} 条`;
+  const dates=[...new Set(reviews.map(r=>r.date))];
+  dates.forEach(d=>{
+    const dh=document.createElement('div'); dh.className='revdate'; dh.textContent='🌙 复盘 · '+d; box.append(dh);
+    const items=reviews.filter(r=>r.date===d);
+    const secs=[...new Set(items.map(r=>r.section||'其他'))];
+    secs.forEach(sec=>{
+      const sh=document.createElement('div'); sh.className='revsec'; sh.textContent=sec; box.append(sh);
+      items.filter(r=>(r.section||'其他')===sec).forEach(r=>{
+        const card=document.createElement('div'); card.className='revitem'+(+r.checked?' on':'');
+        card.innerHTML=`<label class="revchk"><input type="checkbox" ${+r.checked?'checked':''} onchange="toggleReviewCheck(${r.id},this.checked)"></label>
+          <div style="flex:1">
+            <b>${(r.title||'').replace(/</g,'&lt;')}</b>
+            <div class="revdetail">${(r.detail||'').replace(/</g,'&lt;')}</div>
+            <textarea class="revnote" placeholder="✍️ 我的想法…(写完点别处自动存)" onblur="saveReviewNote(${r.id},this.value)">${(r.note||'').replace(/</g,'&lt;')}</textarea>
+          </div>
+          <button class="ghost revdel" onclick="delReview(${r.id})" title="删除">×</button>`;
+        box.append(card);
+      });
+    });
+  });
+}
+async function toggleReviewCheck(id,v){
+  await fetch(RAPI+'/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({checked:v?1:0})});
+  const i=reviews.find(r=>r.id===id); if(i)i.checked=v?1:0; renderReviews();
+}
+async function saveReviewNote(id,v){
+  await fetch(RAPI+'/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({note:v})});
+  const i=reviews.find(r=>r.id===id); if(i)i.note=v; toast('想法已存');
+}
+async function delReview(id){ if(!confirm('删除这条复盘?'))return; await fetch(RAPI+'/'+id,{method:'DELETE'}); await loadAll(); }
+
+// 48h 强制复习
+function checkForceReview(){
+  const today=dayStr(new Date());
+  const due=cards.filter(c=>(c.next_due||'')<=today);
+  const last=+(localStorage.getItem('last_battle')||0);
+  const hrs = last ? (Date.now()-last)/3600000 : 999;
+  if(due.length && hrs>=48 && !document.getElementById('forcemodal')){
+    const m=document.createElement('div'); m.id='forcemodal'; m.className='modal-bg';
+    m.className='review-nudge';
+    m.innerHTML=`<h3>⏰ 今日有 ${due.length} 张卡到期</h3>
+      <p>${last?('已 '+Math.floor(hrs)+' 小时没复习'):'还没开始过对战'}。作战室先不挡你,需要时点一下进入。</p>
+      <div class="nudge-actions"><button class="ghost" onclick="closeForce()">稍后</button><button class="primary" onclick="forceStartBattle()">现在对战</button></div>`;
+    document.body.append(m);
+  }
+}
+function forceStartBattle(){ closeForce(); switchTab('cards'); setTimeout(startBattle, 400); }
+function closeForce(){ const m=document.getElementById('forcemodal'); if(m) m.remove(); }
+
+// 被动金句轮播
+let carouselTimer=null, carouselI=0;
+function toggleCarousel(){
+  if(carouselTimer){ stopCarousel(); return; }
+  if(!cards.length){ toast('还没有卡片'); return; }
+  carouselI=0; document.getElementById('cardlist').innerHTML=''; document.getElementById('cardform').innerHTML='';
+  showCarousel(); carouselTimer=setInterval(()=>{ carouselI=(carouselI+1)%cards.length; showCarousel(); }, 9000);
+  document.getElementById('carouselBtn').textContent='⏹ 停止轮播';
+}
+function showCarousel(){
+  const c=cards[carouselI];
+  document.getElementById('battlebox').innerHTML=`<div class="battle" style="text-align:center;max-width:600px;margin:0 auto">
+    ${c.image?`<img src="${c.image}" style="width:72px;height:72px;border-radius:50%;object-fit:cover" onerror="this.style.display='none'">`:''}
+    <div style="font-size:40px;margin:8px 0">${c.symbol||''}</div>
+    <div style="font-size:13px;color:#9b9a97">${c.source||''}</div>
+    <div class="bq" style="margin:10px 0">${(c.front||c.question||'').replace(/</g,'&lt;')}</div>
+    <div style="font-size:14.5px;line-height:1.6;color:#3a3a37">${(c.back||'').replace(/</g,'&lt;')}</div>
+    ${c.logic?`<div class="logiclabel">🧠 成功的硬实力逻辑 · 思维原理图</div><div class="cdiagram" id="cdiagram"></div>`:''}
+    ${c.quote?`<div style="margin-top:16px;font-style:italic;color:#2f6feb;font-size:16px">"${(c.quote).replace(/</g,'&lt;')}"</div>`:''}
+    <div style="font-size:12px;color:#c4c4c2;margin-top:12px">${carouselI+1}/${cards.length} · 自动轮播中(无压力熏陶)</div></div>`;
+  if(c.logic) renderMermaid('cdiagram', c.logic);
+}
+let _mmId=0;
+async function renderMermaid(elId, code){
+  const el=document.getElementById(elId); if(!el) return;
+  const fallback=()=>{ el.innerHTML='<pre style="text-align:left;font-size:12px;color:#777;white-space:pre-wrap;margin:0">'+String(code).replace(/</g,'&lt;')+'</pre>'; };
+  if(!window.mermaid){ fallback(); return; }
+  try{ const {svg}=await mermaid.render('mm'+(++_mmId), code); if(document.getElementById(elId)) el.innerHTML=svg; }
+  catch(e){ fallback(); }
+}
+function stopCarousel(){ clearInterval(carouselTimer); carouselTimer=null; const b=document.getElementById('carouselBtn'); if(b) b.textContent='🎞️ 金句轮播'; renderCards(); }
+
+/* ---------- 通用写操作 ---------- */
+async function save(id,field,value){
+  await fetch(API+'/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({[field]:value})});
+  toast('已保存');
+}
+async function addProject(){
+  await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({emoji:'🆕',name:'新项目',status:'⬜待补',ball:'❔待定'})});
+  await loadAll();
+}
+async function delProject(id,name){
+  if(!confirm('删除项目「'+(name||'')+'」?(它的提交记录和成果也会一起删)')) return;
+  await fetch(API+'/'+id,{method:'DELETE'}); await loadAll();
+}
+let toastT;
+function toast(msg){
+  const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),1300);
+}
+const _it=new URLSearchParams(location.search).get('tab');
+if(_it){ switchTab(_it); } else { loadAll(); }
+setInterval(()=>{ fetch(QAPI+'/close-stale',{method:'POST'}).catch(()=>{}); }, 60000);
+</script>
+</body>
+</html>

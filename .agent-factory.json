@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "project_type": "local_first_dashboard",
+  "truth_source": "app/项目台.db",
+  "public_boundary": {
+    "publishable": [
+      "app/server.py",
+      "app/index.html",
+      "README.md",
+      "PROJECT.md",
+      "start.sh"
+    ],
+    "private": [
+      "app/项目台.db",
+      "*.db",
+      ".env",
+      "real user project data"
+    ]
+  },
+  "workflow": {
+    "start": "cd app && python3 server.py",
+    "qa": "open http://127.0.0.1:8766 and verify command strip, project board, search, filters, and knowledge nudge"
+  }
+}
