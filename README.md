@@ -2,6 +2,8 @@
 
 一个本地优先的个人作战室看板，用 SQLite 做真相源，用零依赖 Python HTTP 服务提供项目板、节点看板、时间线、任务甘特、成果库、知识对战和复盘视图。
 
+![Dashboard preview](docs/dashboard-preview.png)
+
 ## 适合什么场景
 
 - 管理多个长期项目，而不是只维护一堆零散 Markdown。
