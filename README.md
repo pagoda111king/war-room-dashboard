@@ -29,6 +29,7 @@ Most personal project systems slowly become a pile of Markdown files, chat trans
 ## Features
 
 - Project board: status, owner, next step, blocker, path, and recent movement.
+- Big goals: create goal containers, assign existing or new projects, and drag projects between goals or back to unassigned.
 - Command strip: "mine", blockers, due tasks, review cards, open questions, recent commits.
 - Timeline: project-lane view of real daily progress.
 - Gantt tasks: dates, owners, goals, progress, and overdue cues.
@@ -64,6 +65,8 @@ Health check:
 ```bash
 curl http://127.0.0.1:8766/api/health
 ```
+
+The health response also reports the number of big goals and projects after the first-start database migration.
 
 ## Requirements
 

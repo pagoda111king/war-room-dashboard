@@ -22,6 +22,7 @@ Single-page application containing:
 
 - Layout and styles.
 - Project board rendering.
+- Big-goal grouping, drag-and-drop assignment, and project creation forms.
 - Timeline and Gantt rendering.
 - Artifact, review card, question, concept note, and retrospective views.
 - Direct `fetch()` calls to the local JSON API.
@@ -41,6 +42,7 @@ Responsibilities:
 - Initialize and migrate SQLite tables.
 - Seed demo data on first start.
 - Provide JSON CRUD endpoints.
+- Keep big goals separate from projects while allowing nullable project assignment.
 - Provide local review-card scheduling helpers.
 - Provide `/api/health` for verification.
 

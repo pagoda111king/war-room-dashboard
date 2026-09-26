@@ -22,7 +22,10 @@ OPENMAIC_URL = os.environ.get("OPENMAIC_URL", "http://127.0.0.1:8770")
 
 # projects 字段(前端/DB/API 共用)
 PCOLS = ["emoji", "name", "status", "ball", "what",
-         "just_done", "doing_next", "blocker", "path", "lastmove", "category"]
+         "just_done", "doing_next", "blocker", "path", "lastmove", "category", "goal_id"]
+
+# big_goals 字段(项目的上层目标容器)
+GCOLS = ["emoji", "name", "status", "what", "just_done", "doing_next", "blocker"]
 
 # tasks 字段(任务层 · 挂在项目下)
 TCOLS = ["project_id", "title", "status", "goal", "owner",
@@ -65,6 +68,23 @@ def conn():
 
 def cols_of(c, table):
     return [r[1] for r in c.execute(f"PRAGMA table_info({table})")]
+
+
+def normalize_goal_id(c, value):
+    """只接受当前存在的大目标 ID，空值统一表示未归属。"""
+    if value in (None, "", 0, "0"):
+        return None
+    try:
+        gid = int(value)
+    except (TypeError, ValueError):
+        return None
+    return gid if c.execute("SELECT 1 FROM big_goals WHERE id=?", (gid,)).fetchone() else None
+
+
+def project_value(c, payload, key):
+    if key == "goal_id":
+        return normalize_goal_id(c, payload.get(key))
+    return payload.get(key, "")
 
 
 def apply_card_review(c, rid, correct):
@@ -409,6 +429,19 @@ def init_db():
         c.execute("ALTER TABLE projects RENAME COLUMN nextstep TO doing_next")
     if "category" not in cols_of(c, "projects"):
         c.execute("ALTER TABLE projects ADD COLUMN category TEXT DEFAULT ''")
+    if "goal_id" not in cols_of(c, "projects"):
+        c.execute("ALTER TABLE projects ADD COLUMN goal_id INTEGER")
+
+    c.execute("""CREATE TABLE IF NOT EXISTS big_goals(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        emoji TEXT DEFAULT '🎯', name TEXT NOT NULL,
+        status TEXT DEFAULT '🟢进行', what TEXT DEFAULT '',
+        just_done TEXT DEFAULT '', doing_next TEXT DEFAULT '', blocker TEXT DEFAULT '',
+        sort_order INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now','localtime')),
+        updated_at TEXT DEFAULT (datetime('now','localtime'))
+    )""")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_projects_goal_id ON projects(goal_id)")
 
     c.execute("""CREATE TABLE IF NOT EXISTS commits(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -578,7 +611,7 @@ def init_db():
         ph = ",".join("?" * len(PCOLS))
         for i, p in enumerate(SEED):
             c.execute(f"INSERT INTO projects(sort_order,{','.join(PCOLS)}) VALUES(?,{ph})",
-                      [i] + [p.get(k, "") for k in PCOLS])
+                      [i] + [project_value(c, p, k) for k in PCOLS])
 
     if c.execute("SELECT COUNT(*) FROM tasks").fetchone()[0] == 0:
         def pid(nm):
@@ -669,19 +702,11 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/health":
             try:
                 c = conn()
-                tables = ["projects", "commits", "artifacts", "tasks", "plans", "cards", "reviews"]
-                counts = {
-                    table: c.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-                    for table in tables
-                }
+                tables = ["big_goals", "projects", "commits", "artifacts", "tasks", "plans", "cards", "reviews"]
+                counts = {table: c.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] for table in tables}
                 c.close()
-                self._json(200, {
-                    "ok": True,
-                    "app": "war-room-dashboard",
-                    "version": "0.1.0",
-                    "database": os.path.basename(DB),
-                    "counts": counts,
-                })
+                self._json(200, {"ok": True, "app": "war-room-dashboard", "version": "0.2.0",
+                                 "database": os.path.basename(DB), "counts": counts})
             except Exception as e:
                 self._json(500, {"ok": False, "error": str(e)})
             return
@@ -694,7 +719,12 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(200, {"ok": False, "url": OPENMAIC_URL, "error": str(e)})
             return
         c = conn()
-        if path == "/api/projects":
+        if path == "/api/goals":
+            rows = [dict(r) for r in c.execute(
+                """SELECT g.*, COUNT(p.id) AS project_count
+                   FROM big_goals g LEFT JOIN projects p ON p.goal_id=g.id
+                   GROUP BY g.id ORDER BY g.sort_order, g.id""")]
+        elif path == "/api/projects":
             rows = [dict(r) for r in c.execute("SELECT * FROM projects ORDER BY sort_order, id")]
         elif path == "/api/commits":
             rows = [dict(r) for r in c.execute("SELECT * FROM commits ORDER BY ts DESC, id DESC")]
@@ -757,11 +787,20 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         b = self._body()
         c = conn()
+        if path == "/api/goals":
+            nxt = c.execute("SELECT COALESCE(MAX(sort_order),-1)+1 FROM big_goals").fetchone()[0]
+            values = [b.get(k, "🟢进行" if k == "status" else "") for k in GCOLS]
+            cur = c.execute(f"INSERT INTO big_goals(sort_order,{','.join(GCOLS)}) VALUES(?,{','.join('?' * len(GCOLS))})",
+                            [nxt] + values)
+            c.commit()
+            row = dict(c.execute("SELECT * FROM big_goals WHERE id=?", (cur.lastrowid,)).fetchone())
+            c.close(); self._json(200, row); return
+
         if path == "/api/projects":
             nxt = c.execute("SELECT COALESCE(MAX(sort_order),-1)+1 FROM projects").fetchone()[0]
             ph = ",".join("?" * len(PCOLS))
             cur = c.execute(f"INSERT INTO projects(sort_order,{','.join(PCOLS)}) VALUES(?,{ph})",
-                            [nxt] + [b.get(k, "") for k in PCOLS])
+                            [nxt] + [project_value(c, b, k) for k in PCOLS])
             c.commit()
             row = dict(c.execute("SELECT * FROM projects WHERE id=?", (cur.lastrowid,)).fetchone())
             c.close(); self._json(200, row); return
@@ -1084,6 +1123,14 @@ class Handler(BaseHTTPRequestHandler):
                           [b[k] for k in fields] + [rid])
                 c.commit(); c.close()
             self._json(200, {"ok": True}); return
+        if path.startswith("/api/goals/"):
+            rid = self._tail_id(path); fields = [k for k in GCOLS if k in b]
+            if fields:
+                c = conn()
+                c.execute(f"UPDATE big_goals SET {','.join(f'{k}=?' for k in fields)}, updated_at=datetime('now','localtime') WHERE id=?",
+                          [b[k] for k in fields] + [rid])
+                c.commit(); c.close()
+            self._json(200, {"ok": True}); return
         if path.startswith("/api/projects/"):
             rid = self._tail_id(path); fields = [k for k in PCOLS if k in b]
             if fields:
@@ -1097,7 +1144,7 @@ class Handler(BaseHTTPRequestHandler):
                 sets = ",".join(f"{k}=?" for k in fields)
                 extra = ", lastmove=strftime('%m-%d %H:%M','now','localtime')" if auto else ""
                 c.execute(f"UPDATE projects SET {sets}{extra}, updated_at=datetime('now','localtime') WHERE id=?",
-                          [b[k] for k in fields] + [rid])
+                          [project_value(c, b, k) for k in fields] + [rid])
                 if auto:
                     new_dn = b.get("doing_next", old_dn) or ""
                     c.execute("INSERT INTO commits(project_id,just_done,doing_next,note) VALUES(?,?,?,?)",
@@ -1119,7 +1166,11 @@ class Handler(BaseHTTPRequestHandler):
     def do_DELETE(self):
         path = urlparse(self.path).path
         c = conn()
-        if path.startswith("/api/projects/"):
+        if path.startswith("/api/goals/"):
+            rid = self._tail_id(path)
+            c.execute("UPDATE projects SET goal_id=NULL, updated_at=datetime('now','localtime') WHERE goal_id=?", (rid,))
+            c.execute("DELETE FROM big_goals WHERE id=?", (rid,))
+        elif path.startswith("/api/projects/"):
             rid = self._tail_id(path)
             c.execute("DELETE FROM artifacts WHERE project_id=?", (rid,))
             c.execute("DELETE FROM commits WHERE project_id=?", (rid,))

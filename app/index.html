@@ -44,7 +44,27 @@
   .wrap{padding:8px 32px 90px;max-width:1500px}
 
   /* 项目板 */
-  #board{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px}
+  #board{display:block}
+  .goal-section{margin:14px 0 26px;padding:14px 0 0;border-top:1px solid var(--line)}
+  .goal-section:first-child{border-top:none;padding-top:0}
+  .goal-head{display:flex;align-items:center;gap:10px;min-height:42px;margin-bottom:10px}
+  .goal-title{display:flex;align-items:center;gap:7px;min-width:240px;flex:1}
+  .goal-emoji{font-size:22px;min-width:28px;text-align:center;outline:none;border-radius:6px}
+  .goal-emoji:focus{background:#eef}
+  .goal-name{font-size:18px;font-weight:700;outline:none;border-radius:6px;padding:2px 5px}
+  .goal-name:focus{background:#f0f4ff}
+  .goal-meta{font-size:12px;color:var(--grey);white-space:nowrap}
+  .goal-actions{display:flex;align-items:center;gap:5px}
+  .goal-actions button{font-size:12px;padding:5px 9px}
+  .goal-projects{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px}
+  .goal-dropzone{padding:0 3px 5px;border-radius:12px;transition:.15s}
+  .goal-dropzone.dragover{background:#eef5ff;outline:2px dashed #9bbaf5;outline-offset:4px}
+  .goal-empty{border:1px dashed #d8d8d5;border-radius:10px;color:#aaa;font-size:13px;padding:17px;text-align:center;grid-column:1/-1}
+  .goal-life-label{font-size:13px;font-weight:700;color:var(--grey);margin:4px 0 7px;letter-spacing:.5px;grid-column:1/-1}
+  .drag-handle{cursor:grab;color:#b1b1ad;font-size:17px;line-height:1;user-select:none;padding:3px 1px}
+  .drag-handle:active{cursor:grabbing}
+  .project-card.dragging{opacity:.45}
+  .goal-select{max-width:180px;background:#f0f4ff!important;color:#365b9c}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 16px 12px;
     box-shadow:var(--shadow);position:relative;transition:.15s}
   .card:hover{box-shadow:0 4px 14px rgba(15,15,15,.09)}
@@ -325,7 +345,8 @@
   <!-- 项目板 -->
   <div id="view-board">
     <div class="barline">
-      <button class="primary" onclick="addProject()">+ 新项目</button>
+      <button class="primary" onclick="toggleGoalForm()">+ 新大目标</button>
+      <button onclick="toggleProjectForm()">+ 新项目</button>
       <label class="toggle"><input type="checkbox" id="mine" onchange="loadAll()"> 只看 🔴 球在我</label>
       <input id="boardSearch" class="searchInput" type="search" placeholder="搜索项目 / 下一步 / 卡点 / 路径" oninput="boardQuery=this.value;renderBoard()">
       <select id="boardStatus" class="filterSelect" onchange="boardStatus=this.value;renderBoard()">
@@ -336,8 +357,11 @@
         <option value="完成">完成</option>
         <option value="待补">待补</option>
       </select>
+      <span class="legend" id="goalstat"></span>
       <span class="legend">球在谁手:🔴你 / 🟡项目Claude / ⚪外部 / ❔待定</span>
     </div>
+    <div id="goalform"></div>
+    <div id="projectform"></div>
     <div id="board"></div>
   </div>
 
@@ -466,7 +490,7 @@
 <div id="toast">已保存</div>
 
 <script>
-const API='/api/projects', CAPI='/api/commits', AAPI='/api/artifacts', TAPI='/api/tasks', LAPI='/api/plans', KAPI='/api/cards', RAPI='/api/reviews', DSAPI='/api/daystart', BAPI='/api/battle', QAPI='/api/card-questions', OAPI='/api/openmaic/status', NAPI='/api/concept-notes';
+const API='/api/projects', GAPI='/api/goals', CAPI='/api/commits', AAPI='/api/artifacts', TAPI='/api/tasks', LAPI='/api/plans', KAPI='/api/cards', RAPI='/api/reviews', DSAPI='/api/daystart', BAPI='/api/battle', QAPI='/api/card-questions', OAPI='/api/openmaic/status', NAPI='/api/concept-notes';
 const STATUS=['🟢进行','⏸暂停','⛔卡住','✅完成','⬜待补'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const BALL=['🔴你','🟡项目Claude','⚪外部','❔待定'];
@@ -484,11 +508,11 @@ const GOALS=['G1赚钱','G2成长','两者'];
 const TSTAT_COLOR={'待办':'#b9b9b6','进行':'#2f6feb','卡住':'#eb5757','完成':'#1a7f37'};
 const GOAL_COLOR={'G1赚钱':'#eb5757','G2成长':'#2f6feb','两者':'#9b59b6'};
 
-let projects=[], commits=[], artifacts=[], tasks=[], plans=[], cards=[], reviews=[], questions=[], conceptNotes=[], activeTab='board', matFilter='全部', viewDate=dayStr(new Date()), timelineMode='vertical', boardQuery='', boardStatus='全部';
+let projects=[], goals=[], commits=[], artifacts=[], tasks=[], plans=[], cards=[], reviews=[], questions=[], conceptNotes=[], activeTab='board', matFilter='全部', viewDate=dayStr(new Date()), timelineMode='vertical', boardQuery='', boardStatus='全部', projectFormGoalId=null;
 
 async function loadAll(){
-  [projects,commits,artifacts,tasks,plans,cards,reviews,questions,conceptNotes]=await Promise.all([
-    fetch(API).then(r=>r.json()), fetch(CAPI).then(r=>r.json()), fetch(AAPI).then(r=>r.json()), fetch(TAPI).then(r=>r.json()), fetch(LAPI).then(r=>r.json()), fetch(KAPI).then(r=>r.json()), fetch(RAPI).then(r=>r.json()), fetch(QAPI).then(r=>r.json()).catch(()=>[]), fetch(NAPI).then(r=>r.json()).catch(()=>[])]);
+  [projects,goals,commits,artifacts,tasks,plans,cards,reviews,questions,conceptNotes]=await Promise.all([
+    fetch(API).then(r=>r.json()), fetch(GAPI).then(r=>r.json()).catch(()=>[]), fetch(CAPI).then(r=>r.json()), fetch(AAPI).then(r=>r.json()), fetch(TAPI).then(r=>r.json()), fetch(LAPI).then(r=>r.json()), fetch(KAPI).then(r=>r.json()), fetch(RAPI).then(r=>r.json()), fetch(QAPI).then(r=>r.json()).catch(()=>[]), fetch(NAPI).then(r=>r.json()).catch(()=>[])]);
   renderOpsBar();
   renderActive();
   if(!window._checkedForce){ window._checkedForce=true; setTimeout(checkForceReview, 300); }
@@ -734,6 +758,44 @@ function makeVal(p,field,cls){
   d.onblur=()=>{const v=d.textContent.trim(); if(v!==(p[field]||'')){p[field]=v;save(p.id,field,v);}};
   return d;
 }
+function goalName(id){
+  const g=goals.find(x=>String(x.id)===String(id));
+  return g ? (g.name||'未命名大目标') : '';
+}
+function goalOptions(selected){
+  const sorted=[...goals].sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)||a.id-b.id);
+  return '<option value="">未归属大目标</option>'+sorted.map(g=>
+    `<option value="${g.id}" ${String(g.id)===String(selected||'')?'selected':''}>${esc(g.emoji||'🎯')} ${esc(g.name||'未命名大目标')}</option>`).join('');
+}
+function setupGoalDrop(zone, goalId){
+  zone.ondragover=e=>{e.preventDefault();e.dataTransfer.dropEffect='move';zone.classList.add('dragover');};
+  zone.ondragleave=e=>{if(!zone.contains(e.relatedTarget))zone.classList.remove('dragover');};
+  zone.ondrop=async e=>{
+    e.preventDefault(); zone.classList.remove('dragover');
+    const pid=e.dataTransfer.getData('text/plain');
+    if(pid) await dropProjectOnGoal(pid, goalId);
+  };
+}
+function startProjectDrag(e, id){
+  e.dataTransfer.setData('text/plain',String(id));
+  e.dataTransfer.effectAllowed='move';
+  const c=e.currentTarget.closest('.project-card'); if(c)c.classList.add('dragging');
+}
+function endProjectDrag(){document.querySelectorAll('.project-card.dragging').forEach(x=>x.classList.remove('dragging'));}
+function makeGoalSelect(p){
+  const s=document.createElement('select'); s.className='goal-select'; s.title='归属大目标';
+  s.innerHTML=goalOptions(p.goal_id); s.value=p.goal_id||'';
+  s.onchange=()=>dropProjectOnGoal(p.id,s.value||null);
+  return s;
+}
+function makeGoalStatus(g){
+  const s=document.createElement('select');
+  const opts=['🟢进行','⏸暂停','⛔卡住','✅完成'];
+  opts.forEach(o=>s.add(new Option(o,o,false,g.status===o)));
+  s.style.background=STATUS_BG[g.status]||'#ededec';
+  s.onchange=()=>{s.style.background=STATUS_BG[s.value]||'#ededec';saveGoal(g.id,'status',s.value);};
+  return s;
+}
 function renderBoard(){
   const onlyMine=document.getElementById('mine').checked;
   const q=(document.getElementById('boardSearch')?.value||boardQuery||'').trim().toLowerCase();
@@ -743,35 +805,72 @@ function renderBoard(){
     if(onlyMine && !(p.ball||'').startsWith('🔴')) return false;
     if(st!=='全部' && !String(p.status||'').includes(st)) return false;
     if(q){
-      const hay=[p.name,p.what,p.just_done,p.doing_next,p.blocker,p.path,p.category].join(' ').toLowerCase();
+      const hay=[p.name,p.what,p.just_done,p.doing_next,p.blocker,p.path,p.category,goalName(p.goal_id)].join(' ').toLowerCase();
       if(!hay.includes(q)) return false;
     }
     return true;
   });
-  list.filter(p=>p.category!=='生活').forEach(p=>b.appendChild(card(p)));
+  const sortedGoals=[...goals].sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)||a.id-b.id);
+  sortedGoals.forEach(g=>b.appendChild(goalSection(g,list.filter(p=>String(p.goal_id)===String(g.id)))));
+  b.appendChild(goalSection(null,list.filter(p=>!p.goal_id)));
+  const assigned=list.filter(p=>p.goal_id).length;
+  const stat=document.getElementById('goalstat');
+  if(stat)stat.textContent=`大目标 ${goals.length} 个 · 当前显示 ${assigned}/${list.length} 个项目已归属`;
+}
+function goalSection(g, list){
+  const sec=document.createElement('section'); sec.className='goal-section';
+  const zone=document.createElement('div'); zone.className='goal-dropzone';
+  setupGoalDrop(zone,g&&g.id?g.id:null);
+  const head=document.createElement('div'); head.className='goal-head';
+  const title=document.createElement('div'); title.className='goal-title';
+  if(g){
+    const em=document.createElement('div'); em.className='goal-emoji'; em.contentEditable=true; em.textContent=g.emoji||'🎯';
+    em.onblur=()=>{const v=em.textContent.trim();if(v!==g.emoji)saveGoal(g.id,'emoji',v);};
+    const nm=document.createElement('div'); nm.className='goal-name'; nm.contentEditable=true; nm.textContent=g.name||'未命名大目标';
+    nm.onblur=()=>{const v=nm.textContent.trim();if(v&&v!==g.name)saveGoal(g.id,'name',v);};
+    title.append(em,nm);
+  }else{
+    const em=document.createElement('div'); em.className='goal-emoji'; em.textContent='📥';
+    const nm=document.createElement('div'); nm.className='goal-name'; nm.textContent='未归属大目标';
+    title.append(em,nm);
+  }
+  const meta=document.createElement('span'); meta.className='goal-meta'; meta.textContent=`${list.length} 个项目 · 拖动项目到这里`;
+  const actions=document.createElement('div'); actions.className='goal-actions';
+  if(g){
+    actions.append(makeGoalStatus(g));
+    const add=document.createElement('button'); add.textContent='+ 添加项目'; add.onclick=()=>toggleProjectForm(g.id); actions.append(add);
+    const del=document.createElement('button'); del.className='ghost'; del.textContent='删除目标'; del.onclick=()=>deleteGoal(g.id,g.name); actions.append(del);
+  }else{
+    const add=document.createElement('button'); add.textContent='+ 添加项目'; add.onclick=()=>toggleProjectForm(null); actions.append(add);
+  }
+  head.append(title,meta,actions); zone.append(head);
+  const grid=document.createElement('div'); grid.className='goal-projects';
+  const work=list.filter(p=>p.category!=='生活'); work.forEach(p=>grid.appendChild(card(p)));
   const life=list.filter(p=>p.category==='生活');
   if(life.length){
-    const h=document.createElement('div'); h.className='arttype'; h.style.gridColumn='1/-1';
-    h.textContent='🐱 生活(每天必花的时间 · 顺便变现)';
-    b.appendChild(h);
-    life.forEach(p=>b.appendChild(card(p)));
+    const h=document.createElement('div'); h.className='goal-life-label'; h.textContent='🐱 生活(每天必花的时间 · 顺便变现)'; grid.appendChild(h);
+    life.forEach(p=>grid.appendChild(card(p)));
   }
+  if(!list.length){const empty=document.createElement('div');empty.className='goal-empty';empty.textContent=g?'还没有项目，拖动项目卡到这里或点击“添加项目”。':'当前没有未归属项目。';grid.appendChild(empty);}
+  zone.append(grid); sec.append(zone); return sec;
 }
 function card(p){
   const myCommits=commits.filter(c=>c.project_id===p.id); // 已按 ts desc
-  const c=document.createElement('div'); c.className='card';
+  const c=document.createElement('div'); c.className='card project-card';
 
   const t=document.createElement('div'); t.className='ctitle';
+  const drag=document.createElement('span'); drag.className='drag-handle'; drag.textContent='⋮⋮'; drag.title='拖动到大目标'; drag.draggable=true;
+  drag.addEventListener('dragstart',e=>startProjectDrag(e,p.id)); drag.addEventListener('dragend',endProjectDrag);
   const em=document.createElement('div'); em.className='emoji'; em.contentEditable=true; em.textContent=p.emoji||'📁';
   em.onblur=()=>{const v=em.textContent.trim(); if(v!==p.emoji){p.emoji=v;save(p.id,'emoji',v);}};
   const nm=document.createElement('div'); nm.className='name'; nm.contentEditable=true; nm.textContent=p.name||'';
   nm.onblur=()=>{const v=nm.textContent.trim(); if(v!==p.name){p.name=v;save(p.id,'name',v);}};
   const dl=document.createElement('button'); dl.className='del'; dl.textContent='×'; dl.title='删除';
   dl.onclick=()=>delProject(p.id,p.name);
-  t.append(em,nm,dl); c.append(t);
+  t.append(drag,em,nm,dl); c.append(t);
 
   const pl=document.createElement('div'); pl.className='pills';
-  pl.append(makeSelect(p,'status',STATUS,STATUS_BG),makeSelect(p,'ball',BALL,BALL_BG),makeSelect(p,'category',CATS,CAT_BG,true)); c.append(pl);
+  pl.append(makeSelect(p,'status',STATUS,STATUS_BG),makeSelect(p,'ball',BALL,BALL_BG),makeSelect(p,'category',CATS,CAT_BG,true),makeGoalSelect(p)); c.append(pl);
 
   FIELDS.forEach(([f,label])=>{
     const w=document.createElement('div'); w.className='field';
@@ -1438,10 +1537,66 @@ async function save(id,field,value){
   await fetch(API+'/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({[field]:value})});
   toast('已保存');
 }
-async function addProject(){
-  await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({emoji:'🆕',name:'新项目',status:'⬜待补',ball:'❔待定'})});
-  await loadAll();
+async function saveGoal(id,field,value){
+  await fetch(GAPI+'/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({[field]:value})});
+  const g=goals.find(x=>x.id===id); if(g)g[field]=value;
+  toast('大目标已保存');
+}
+async function dropProjectOnGoal(projectId,goalId){
+  await fetch(API+'/'+projectId,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({goal_id:goalId||null})});
+  toast(goalId?'已归入大目标':'已移到未归属'); await loadAll();
+}
+async function deleteGoal(id,name){
+  if(!confirm(`删除大目标「${name||''}」? 项目会保留并回到未归属。`))return;
+  await fetch(GAPI+'/'+id,{method:'DELETE'}); toast('大目标已删除'); await loadAll();
+}
+function toggleGoalForm(){
+  const f=document.getElementById('goalform');
+  if(f.innerHTML){f.innerHTML='';return;}
+  document.getElementById('projectform').innerHTML='';
+  f.innerHTML=`<div class="detbox">
+    <div class="trow"><label>图标</label><input class="tin" id="gl_emoji" value="🎯" maxlength="4"></div>
+    <div class="trow"><label>大目标名称</label><input class="tin" id="gl_name" placeholder="例如：2026 年收入 10 万"></div>
+    <div class="trow"><label>目标是什么</label><textarea id="gl_what" rows="2" placeholder="一句话写清最终结果"></textarea></div>
+    <div class="trow"><label>当前下一步</label><textarea id="gl_next" rows="2" placeholder="这个大目标目前最重要的推进动作"></textarea></div>
+    <div class="pbtns"><button class="primary" onclick="createGoalFromForm()">创建大目标</button><button class="ghost" onclick="toggleGoalForm()">取消</button></div>
+  </div>`;
+  document.getElementById('gl_name').focus();
+}
+async function createGoalFromForm(){
+  const name=document.getElementById('gl_name').value.trim();
+  if(!name){toast('先写大目标名称');return;}
+  await fetch(GAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    emoji:document.getElementById('gl_emoji').value.trim()||'🎯', name,
+    status:'🟢进行', what:document.getElementById('gl_what').value.trim(),
+    doing_next:document.getElementById('gl_next').value.trim()
+  })});
+  document.getElementById('goalform').innerHTML=''; toast('✓ 大目标已创建'); await loadAll();
+}
+function toggleProjectForm(goalId){
+  const f=document.getElementById('projectform');
+  if(f.innerHTML && goalId===undefined){f.innerHTML='';return;}
+  projectFormGoalId=goalId===undefined?null:goalId;
+  document.getElementById('goalform').innerHTML='';
+  f.innerHTML=`<div class="detbox">
+    <div class="trow"><label>图标</label><input class="tin" id="pr_emoji" value="🆕" maxlength="4"></div>
+    <div class="trow"><label>项目名称</label><input class="tin" id="pr_name" placeholder="例如：商家 Agent 交付"></div>
+    <div class="trow"><label>项目是什么</label><textarea id="pr_what" rows="2" placeholder="这个项目要交付什么结果"></textarea></div>
+    <div class="row2"><select class="psel" id="pr_goal">${goalOptions(projectFormGoalId)}</select><select class="psel" id="pr_category"><option>工作</option><option>生活</option></select></div>
+    <div class="pbtns"><button class="primary" onclick="createProjectFromForm()">创建项目</button><button class="ghost" onclick="toggleProjectForm()">取消</button></div>
+  </div>`;
+  document.getElementById('pr_name').focus();
+}
+async function createProjectFromForm(){
+  const name=document.getElementById('pr_name').value.trim();
+  if(!name){toast('先写项目名称');return;}
+  const goal=document.getElementById('pr_goal').value;
+  await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    emoji:document.getElementById('pr_emoji').value.trim()||'🆕',name,status:'⬜待补',ball:'❔待定',
+    what:document.getElementById('pr_what').value.trim(),category:document.getElementById('pr_category').value,
+    goal_id:goal||null
+  })});
+  document.getElementById('projectform').innerHTML=''; toast('✓ 项目已创建'); await loadAll();
 }
 async function delProject(id,name){
   if(!confirm('删除项目「'+(name||'')+'」?(它的提交记录和成果也会一起删)')) return;

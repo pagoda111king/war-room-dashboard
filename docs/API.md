@@ -18,9 +18,10 @@ Returns app status and row counts.
 {
   "ok": true,
   "app": "war-room-dashboard",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "database": "项目台.db",
   "counts": {
+    "big_goals": 0,
     "projects": 4,
     "commits": 0,
     "artifacts": 0,
@@ -31,6 +32,28 @@ Returns app status and row counts.
   }
 }
 ```
+
+## Big Goals
+
+Big goals are first-level containers for projects. Existing databases migrate automatically; old projects start with `goal_id: null`.
+
+- `GET /api/goals`
+- `POST /api/goals`
+- `PATCH /api/goals/:id`
+- `DELETE /api/goals/:id`
+
+`DELETE /api/goals/:id` keeps projects and clears their `goal_id`.
+
+Goal fields:
+
+- `emoji`
+- `name`
+- `status`
+- `what`
+- `just_done`
+- `doing_next`
+- `blocker`
+- `sort_order`
 
 ## Projects
 
@@ -52,6 +75,7 @@ Fields:
 - `path`
 - `lastmove`
 - `category`
+- `goal_id` (nullable; references a big goal)
 
 When `just_done` changes, the server automatically writes a timeline commit.
 
